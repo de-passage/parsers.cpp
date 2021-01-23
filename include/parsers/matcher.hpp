@@ -38,10 +38,11 @@ constexpr auto parsers_interpreters_make_matcher(
   };
 }
 
-template <class T>
+template <class T, class I>
 constexpr auto parsers_interpreters_make_matcher(
-    description::many<T> descriptor) noexcept {
-  return [parser = make_parser(descriptor.parser())](
+    description::many<T> descriptor,
+    I interpreter) noexcept {
+  return [parser = interpreter(descriptor.parser())](
              [[maybe_unused]] auto beg,
              [[maybe_unused]] auto end) -> std::optional<decltype(beg)> {
     while (beg != end) {
@@ -60,10 +61,28 @@ namespace interpreters {
 
 namespace detail {
 using ::parsers::customization_points::parsers_interpreters_make_matcher;
+
+template <class T, class = void>
+struct overloard_takes_single_argument : std::false_type {};
+template <class T>
+struct overloard_takes_single_argument<
+    T,
+    std::void_t<decltype(parsers_interpreters_make_matcher(std::declval<T>()))>>
+    : std::true_type {};
+template <class T>
+constexpr static inline bool overload_takes_single_argument_v =
+    overloard_takes_single_argument<T>::value;
+
 struct make_matcher_t {
+ public:
   template <class T>
   [[nodiscard]] constexpr auto operator()(T descriptor) const noexcept {
-    return parsers_interpreters_make_matcher(descriptor);
+    if constexpr (overload_takes_single_argument_v<T>) {
+      return parsers_interpreters_make_matcher(descriptor);
+    }
+    else {
+      return parsers_interpreters_make_matcher(descriptor, *this);
+    }
   }
 };
 }  // namespace detail
