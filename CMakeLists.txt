@@ -51,7 +51,7 @@ include_directories("${gtest_SOURCE_DIR}/include")
 # Now simply link against gtest or gtest_main as needed. Eg
 add_executable(tests tests/parsers.cpp)
 target_link_libraries(tests gtest_main)
-target_include_directories(tests PUBLIC .)
+target_include_directories(tests PUBLIC include)
 add_test(NAME gtests COMMAND tests)
 
 if(MSVC)
