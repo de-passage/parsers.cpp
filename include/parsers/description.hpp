@@ -90,8 +90,17 @@ struct many {
 
 struct end {};
 
+namespace crtp {
 template <class T>
-struct recursive {
+struct construct_parser_t {
+  [[nodiscard]] constexpr auto parser() noexcept {
+    return typename T::parser_t{};
+  }
+};
+}  // namespace crtp
+
+template <class T>
+struct recursive : crtp::construct_parser_t<recursive<T>> {
   constexpr friend std::true_type is_recursive_f(
       [[maybe_unused]] recursive _) noexcept;
 

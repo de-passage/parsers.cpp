@@ -55,6 +55,71 @@ constexpr auto parsers_interpreters_make_matcher(
     return {beg};
   };
 }
+
+template <class A, class B, class I>
+constexpr auto parsers_interpreters_make_matcher(
+    description::both<A, B> descriptor,
+    I interpreter) noexcept {
+  return [left = interpreter(descriptor.left()),
+          right = interpreter(descriptor.right())](
+             [[maybe_unused]] auto beg,
+             [[maybe_unused]] auto end) -> std::optional<decltype(beg)> {
+    if (auto r1 = left(beg, end); r1.has_value()) {
+      if (auto r2 = right(*r1, end); r2.has_value()) {
+        return r2;
+      }
+    }
+    return {};
+  };
+}
+
+template <class A, class B, class I>
+constexpr auto parsers_interpreters_make_matcher(
+    description::either<A, B> descriptor,
+    I interpreter) noexcept {
+  return [left = interpreter(descriptor.left()),
+          right = interpreter(descriptor.right())](
+             [[maybe_unused]] auto beg,
+             [[maybe_unused]] auto end) -> std::optional<decltype(beg)> {
+    if (auto r = left(beg, end); r.has_value()) {
+      return r;
+    }
+    return right(beg, end);
+  };
+}
+
+namespace detail {
+template <class D, class I>
+struct parser_indirection_t {
+  using parser_t = D;
+  using interpreter_t = I;
+  constexpr explicit parser_indirection_t(parser_t parser,
+                                          interpreter_t interpreter) noexcept
+      : parser{parser}, interpreter{interpreter} {}
+
+  parser_t parser;
+  interpreter_t interpreter;
+
+  template <class K, class J>
+  [[nodiscard]] constexpr inline auto operator()(K begin,
+                                                 J end) const noexcept {
+    if constexpr (std::is_invocable_v<interpreter_t, parser_t, interpreter_t>) {
+      return interpreter(parser, interpreter)(begin, end);
+    }
+    else {
+      return interpreter(parser)(begin, end);
+    }
+  }
+};
+}  // namespace detail
+
+template <class R, class I>
+constexpr auto parsers_interpreters_make_matcher(
+    description::recursive<R> descriptor,
+    I interpreter) noexcept {
+  return detail::parser_indirection_t<typename decltype(descriptor)::parser_t,
+                                      I>{descriptor.parser(), interpreter};
+}
 }  // namespace customization_points
 
 namespace interpreters {
