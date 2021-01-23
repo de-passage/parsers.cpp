@@ -11,6 +11,13 @@ using namespace std::literals::string_literals;
 using eos_t = either<character<'\0'>, end>;
 constexpr auto eos = eos_t{};
 
+template <class D, class T>
+[[nodiscard]] constexpr std::ptrdiff_t match_length(D desc,
+                                                    const T& in) noexcept {
+  const auto r = parsers::match_span(desc, in);
+  return r.second - r.first;
+}
+
 TEST(Matcher, ShouldBehaveWithTrivialDescriptors) {
   static_assert(match(any{}, "a"));
   static_assert(match(any{}, "b"));
@@ -34,13 +41,11 @@ TEST(Matcher, ShouldBehaveWithTrivialDescriptors) {
   ASSERT_FALSE(match(end{}, "b"s));
   // trailing \0 not processed when iterating over std::string
   ASSERT_TRUE(match(end{}, ""s));
-}
 
-template <class D, class T>
-[[nodiscard]] constexpr std::ptrdiff_t match_length(D desc,
-                                                    const T& in) noexcept {
-  const auto r = parsers::match_span(desc, in);
-  return r.second - r.first;
+  static_assert(match(succeed{}, ""));
+  static_assert(match(succeed{}, "a"));
+  static_assert(match_length(succeed{}, "a") == 0);
+  static_assert(match_length(succeed{}, "") == 0);
 }
 
 TEST(Matcher, ShouldMatchSingleCharacter) {

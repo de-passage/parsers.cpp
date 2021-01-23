@@ -29,8 +29,7 @@ constexpr auto parsers_interpreters_make_matcher(T pred) {
 
 constexpr auto parsers_interpreters_make_matcher(
     [[maybe_unused]] description::end) noexcept {
-  return []([[maybe_unused]] auto beg,
-            [[maybe_unused]] auto end) -> std::optional<decltype(beg)> {
+  return [](auto beg, auto end) -> std::optional<decltype(beg)> {
     if (beg == end) {
       return beg;
     }
@@ -43,8 +42,7 @@ constexpr auto parsers_interpreters_make_matcher(
     description::many<T> descriptor,
     I interpreter) noexcept {
   return [parser = interpreter(descriptor.parser())](
-             [[maybe_unused]] auto beg,
-             [[maybe_unused]] auto end) -> std::optional<decltype(beg)> {
+             auto beg, auto end) -> std::optional<decltype(beg)> {
     while (beg != end) {
       auto r = parser(beg, end);
       if (!r.has_value()) {
@@ -62,8 +60,7 @@ constexpr auto parsers_interpreters_make_matcher(
     I interpreter) noexcept {
   return [left = interpreter(descriptor.left()),
           right = interpreter(descriptor.right())](
-             [[maybe_unused]] auto beg,
-             [[maybe_unused]] auto end) -> std::optional<decltype(beg)> {
+             auto beg, auto end) -> std::optional<decltype(beg)> {
     if (auto r1 = left(beg, end); r1.has_value()) {
       if (auto r2 = right(*r1, end); r2.has_value()) {
         return r2;
@@ -79,13 +76,20 @@ constexpr auto parsers_interpreters_make_matcher(
     I interpreter) noexcept {
   return [left = interpreter(descriptor.left()),
           right = interpreter(descriptor.right())](
-             [[maybe_unused]] auto beg,
-             [[maybe_unused]] auto end) -> std::optional<decltype(beg)> {
+             auto beg, auto end) -> std::optional<decltype(beg)> {
     if (auto r = left(beg, end); r.has_value()) {
       return r;
     }
     return right(beg, end);
   };
+}
+
+constexpr auto parsers_interpreters_make_matcher(
+    [[maybe_unused]] description::succeed) noexcept {
+  return
+      [](auto beg, [[maybe_unused]] auto end) -> std::optional<decltype(beg)> {
+        return beg;
+      };
 }
 
 namespace detail {
@@ -97,9 +101,6 @@ struct parser_indirection_t {
                                           interpreter_t interpreter) noexcept
       : parser{parser}, interpreter{interpreter} {}
 
-  parser_t parser;
-  interpreter_t interpreter;
-
   template <class K, class J>
   [[nodiscard]] constexpr inline auto operator()(K begin,
                                                  J end) const noexcept {
@@ -110,6 +111,10 @@ struct parser_indirection_t {
       return interpreter(parser)(begin, end);
     }
   }
+
+ private:
+  parser_t parser;
+  interpreter_t interpreter;
 };
 }  // namespace detail
 

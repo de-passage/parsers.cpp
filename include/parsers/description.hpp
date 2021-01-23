@@ -49,9 +49,8 @@ struct character : satisfy<character<Char>> {
 struct any : satisfy<any> {
   [[nodiscard]] constexpr bool operator()(...) const noexcept { return true; }
 };
-struct fail : satisfy<fail> {
-  [[nodiscard]] constexpr bool operator()(...) const noexcept { return false; }
-};
+struct fail {};
+struct succeed {};
 
 template <class A, class B>
 struct pair {
