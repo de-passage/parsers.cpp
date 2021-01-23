@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.12.0)
 project(parsers VERSION 0.1.0)
 
 include(CTest)
@@ -48,8 +48,9 @@ add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
 # later. Otherwise we have to add them here ourselves.
 include_directories("${gtest_SOURCE_DIR}/include")
 
-# Now simply link against gtest or gtest_main as needed. Eg
-add_executable(tests tests/parsers.cpp)
+set (TEST_SRC_FILES parsers.cpp matcher.cpp)
+list (TRANSFORM TEST_SRC_FILES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
+add_executable(tests ${TEST_SRC_FILES})
 target_link_libraries(tests gtest_main)
 target_include_directories(tests PUBLIC include)
 add_test(NAME gtests COMMAND tests)

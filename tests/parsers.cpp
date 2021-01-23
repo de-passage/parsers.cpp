@@ -122,7 +122,6 @@ template <auto Char>
 struct rec : recursive<either<both<character<Char>, rec<Char>>, end>> {};
 
 TEST(Parsers, ShouldCompile) {
-  using namespace parsers;
   using opt = std::optional<int>;
 
   static_assert(is_satisfiable_predicate_v<character<'c'>>);
