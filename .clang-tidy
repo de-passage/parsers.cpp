@@ -1,0 +1,1 @@
+Checks: "readability-*, modernize-*, misc-*, clang-analyzer-*, cppcoreguidelines-*, bugprone-*, clang-diagnostic-*, performance-*, -modernize-use-trailing-return-type, -readability-named-parameter"
