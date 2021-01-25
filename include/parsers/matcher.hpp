@@ -10,8 +10,16 @@
 
 namespace parsers {
 namespace customization_points {
+
+namespace detail {
+template <class T, template <class...> class I>
+using instance_of =
+    std::enable_if_t<dpsg::is_template_instance_v<std::decay_t<T>, I>, int>;
+}
+
+template <class F, std::enable_if_t<description::is_failure_v<F>, int> = 0>
 constexpr auto parsers_interpreters_make_matcher(
-    [[maybe_unused]] description::fail) noexcept {
+    [[maybe_unused]] F&&) noexcept {
   return []([[maybe_unused]] auto beg,
             [[maybe_unused]] auto end) -> std::optional<decltype(beg)> {
     return {};
@@ -37,12 +45,6 @@ constexpr auto parsers_interpreters_make_matcher(
     }
     return {};
   };
-}
-
-namespace detail {
-template <class T, template <class...> class I>
-using instance_of =
-    std::enable_if_t<dpsg::is_template_instance_v<std::decay_t<T>, I>, int>;
 }
 
 template <class M, class I, detail::instance_of<M, description::many> = 0>
@@ -170,12 +172,13 @@ constexpr static inline bool overload_takes_single_argument_v =
 struct make_matcher_t {
  public:
   template <class T>
-  [[nodiscard]] constexpr auto operator()(T descriptor) const noexcept {
+  [[nodiscard]] constexpr auto operator()(T&& descriptor) const noexcept {
     if constexpr (overload_takes_single_argument_v<T>) {
-      return parsers_interpreters_make_matcher(descriptor);
+      return parsers_interpreters_make_matcher(std::forward<T>(descriptor));
     }
     else {
-      return parsers_interpreters_make_matcher(descriptor, *this);
+      return parsers_interpreters_make_matcher(std::forward<T>(descriptor),
+                                               *this);
     }
   }
 };

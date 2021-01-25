@@ -1,9 +1,14 @@
 #ifndef GUARD_PARSERS_DESCRIPTIONS_HPP
 #define GUARD_PARSERS_DESCRIPTIONS_HPP
 
+#include <array>
 #include <type_traits>
 
 namespace parsers::description {
+namespace detail {
+template <class T>
+using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
+}
 
 template <class CRTP>
 struct satisfy {
@@ -80,7 +85,17 @@ character(T&&) -> character<nullptr, detail::dynamic<std::decay_t<T>>>;
 struct any_t : satisfy<any_t> {
   [[nodiscard]] constexpr bool operator()(...) const noexcept { return true; }
 };
-struct fail {};
+
+template <class T>
+struct fail_t {
+  friend constexpr std::true_type is_failure_f(fail_t) noexcept;
+};
+constexpr std::false_type is_failure_f(...) noexcept;
+template <class T>
+using is_failure = decltype(is_failure_f(std::declval<T>()));
+template <class T>
+constexpr static inline bool is_failure_v = is_failure<T>::value;
+
 struct succeed_t {};
 
 template <class A, class B>
@@ -91,15 +106,56 @@ struct empty_pair {
   constexpr static inline right_t right() noexcept { return {}; }
 };
 
+namespace detail {
+template <class It, class Out>
+constexpr void copy(It beg, It end, Out out) noexcept {
+  while (beg != end) {
+    *out++ = *beg++;
+  }
+}
+}  // namespace detail
 template <class A, class B>
 struct pair {
   using left_t = A;
   using right_t = B;
 
   constexpr pair() = default;
-  template <class T, class U>
+
+  template <class T,
+            class U,
+            std::enable_if_t<!std::is_array_v<std::remove_reference_t<T>> &&
+                                 !std::is_array_v<std::remove_reference_t<U>>,
+                             int> = 0>
   constexpr pair(T&& l, U&& r) noexcept
       : _left{std::forward<T>(l)}, _right{std::forward<U>(r)} {}
+
+  template <class T,
+            class U,
+            std::enable_if_t<std::is_array_v<std::remove_reference_t<T>> &&
+                                 !std::is_array_v<std::remove_reference_t<U>>,
+                             int> = 0>
+  constexpr pair(T&& l, U&& r) noexcept : _right{std::forward<U>(r)} {
+    detail::copy(std::begin(l), std::end(l), std::begin(_left));
+  }
+
+  template <class T,
+            class U,
+            std::enable_if_t<!std::is_array_v<std::remove_reference_t<T>> &&
+                                 std::is_array_v<std::remove_reference_t<U>>,
+                             int> = 0>
+  constexpr pair(T&& l, U&& r) noexcept : _left{std::forward<T>(l)} {
+    detail::copy(std::begin(r), std::end(r), std::begin(_right));
+  }
+
+  template <class T,
+            class U,
+            std::enable_if_t<std::is_array_v<std::remove_reference_t<T>> &&
+                                 std::is_array_v<std::remove_reference_t<U>>,
+                             int> = 0>
+  constexpr pair(T&& l, U&& r) noexcept {
+    detail::copy(std::begin(l), std::end(l), std::begin(_left));
+    detail::copy(std::begin(r), std::end(r), std::begin(_right));
+  }
 
   constexpr inline const left_t& left() const& noexcept { return _left; }
   constexpr inline const right_t& right() const& noexcept { return _right; }
@@ -130,10 +186,11 @@ struct either : C {
   constexpr either(T&& t, U&& u) noexcept
       : C{std::forward<T>(t), std::forward<U>(u)} {}
 };
-template <class A, class B>
-either(A&&, B&&) -> either<std::decay_t<A>,
-                           std::decay_t<B>,
-                           pair<std::decay_t<A>, std::decay_t<B>>>;
+template <class A,
+          class B,
+          class A1 = detail::remove_cvref_t<A>,
+          class B1 = detail::remove_cvref_t<B>>
+either(A&&, B&&) -> either<A1, B1, pair<A1, B1>>;
 
 template <class A, class B, class C = empty_pair<A, B>>
 struct both : C {
@@ -143,10 +200,11 @@ struct both : C {
       : C{std::forward<T>(t), std::forward<U>(u)} {}
 };
 
-template <class A, class B>
-both(A&&, B&&) -> both<std::decay_t<A>,
-                       std::decay_t<B>,
-                       pair<std::decay_t<A>, std::decay_t<B>>>;
+template <class A,
+          class B,
+          class A1 = detail::remove_cvref_t<A>,
+          class B1 = detail::remove_cvref_t<B>>
+both(A&&, B&&) -> both<A1, B1, pair<A1, B1>>;
 
 template <class P>
 struct many {
@@ -156,17 +214,17 @@ struct many {
 
 struct end_t {};
 
-namespace crtp {
+namespace detail {
 template <class T>
 struct construct_parser_t {
   [[nodiscard]] constexpr auto parser() noexcept {
     return typename T::parser_t{};
   }
 };
-}  // namespace crtp
+}  // namespace detail
 
 template <class T>
-struct recursive : crtp::construct_parser_t<recursive<T>> {
+struct recursive : detail::construct_parser_t<recursive<T>> {
   constexpr friend std::true_type is_recursive_f(
       [[maybe_unused]] recursive _) noexcept;
 

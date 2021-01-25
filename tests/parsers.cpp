@@ -7,6 +7,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include "parsers/description.hpp"
 
 using namespace parsers::description;
 
@@ -21,7 +22,7 @@ template <class T>
 constexpr auto make_parser(const T& parser_config) {
   using namespace parsers;
 
-  if constexpr (std::is_same_v<T, fail>) {
+  if constexpr (description::is_failure_v<T>) {
     return []([[maybe_unused]] auto beg,
               [[maybe_unused]] auto end) -> parser_result<decltype(beg)> {
       return {};

@@ -28,12 +28,12 @@ TEST(Matcher, ShouldBehaveWithTrivialDescriptors) {
   // trailing 0 not iterated over
   ASSERT_FALSE(match(any, ""s));
 
-  static_assert(!match(fail{}, "a"));
-  static_assert(!match(fail{}, "b"));
-  static_assert(!match(fail{}, ""));
-  ASSERT_FALSE(match(fail{}, "a"s));
-  ASSERT_FALSE(match(fail{}, "b"s));
-  ASSERT_FALSE(match(fail{}, ""s));
+  static_assert(!match(fail, "a"));
+  static_assert(!match(fail, "b"));
+  static_assert(!match(fail, ""));
+  ASSERT_FALSE(match(fail, "a"s));
+  ASSERT_FALSE(match(fail, "b"s));
+  ASSERT_FALSE(match(fail, ""s));
 
   static_assert(!match(end, "a"));
   static_assert(!match(end, "b"));
