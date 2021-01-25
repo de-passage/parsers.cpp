@@ -110,6 +110,18 @@ template <class T>
 using is_recursive = decltype(is_recursive_f(std::declval<T>()));
 template <class T>
 constexpr static inline bool is_recursive_v = is_recursive<T>::value;
+
+template <class Char>
+struct static_string {
+  const Char* begin;
+  const Char* end;
+};
+
+constexpr static_string<char> operator""_s(const char* str,
+                                           unsigned long long size) noexcept {
+  return static_string<char>{str, str + size};
+}
+
 }  // namespace parsers::description
 
 #endif  // GUARD_PARSERS_DESCRIPTIONS_HPP

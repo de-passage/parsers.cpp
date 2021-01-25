@@ -3,6 +3,7 @@
 
 #include "./description.hpp"
 
+#include <cctype>
 #include <optional>
 #include <type_traits>
 
@@ -124,6 +125,23 @@ constexpr auto parsers_interpreters_make_matcher(
     I interpreter) noexcept {
   return detail::parser_indirection_t<typename decltype(descriptor)::parser_t,
                                       I>{descriptor.parser(), interpreter};
+}
+
+template <class Char, class I>
+constexpr auto parsers_interpreters_make_matcher(
+    description::static_string<Char> descriptor,
+    I interpreter) noexcept {
+  return [descriptor](auto beg, auto end) -> std::optional<decltype(beg)> {
+    auto itb = descriptor.begin;
+    while (itb != descriptor.end) {
+      if (beg == end || *beg != *itb) {
+        return {};
+      }
+      ++beg;
+      ++itb;
+    }
+    return {beg};
+  };
 }
 }  // namespace customization_points
 

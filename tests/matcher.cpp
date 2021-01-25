@@ -131,3 +131,13 @@ TEST(Matcher, RecursiveShouldMatchCorrectly) {
   static_assert(match(rec, "aaaa"));
   static_assert(!match(rec, "b"));
 }
+
+TEST(Matcher, StaticStringShouldBehaveCorrectly) {
+  constexpr auto s = "test"_s;
+  static_assert(match(s, "test"));
+  static_assert(match(s, "testing"));
+  static_assert(!match(s, "tes"));
+  ASSERT_TRUE(match(s, "test"s));
+  ASSERT_TRUE(match(s, "testing"s));
+  ASSERT_FALSE(match(s, "tes"s));
+}
