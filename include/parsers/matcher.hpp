@@ -30,7 +30,7 @@ constexpr auto parsers_interpreters_make_matcher(T pred) {
 }
 
 constexpr auto parsers_interpreters_make_matcher(
-    [[maybe_unused]] description::end) noexcept {
+    [[maybe_unused]] description::end_t) noexcept {
   return [](auto beg, auto end) -> std::optional<decltype(beg)> {
     if (beg == end) {
       return beg;
@@ -90,7 +90,7 @@ constexpr auto parsers_interpreters_make_matcher(E&& descriptor,
 }
 
 constexpr auto parsers_interpreters_make_matcher(
-    [[maybe_unused]] description::succeed) noexcept {
+    [[maybe_unused]] description::succeed_t) noexcept {
   return
       [](auto beg, [[maybe_unused]] auto end) -> std::optional<decltype(beg)> {
         return beg;

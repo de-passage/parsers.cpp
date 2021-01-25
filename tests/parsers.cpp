@@ -85,8 +85,8 @@ constexpr bool match(P&& parser, T&& t) noexcept {
 }
 
 template <>
-struct custom_parser<end> {
-  constexpr static inline auto make_parser([[maybe_unused]] end) noexcept {
+struct custom_parser<end_t> {
+  constexpr static inline auto make_parser([[maybe_unused]] end_t) noexcept {
     return [](auto beg, auto end) -> parser_result<decltype(beg)> {
       constexpr auto check = [](auto b, auto e) {
         if constexpr (std::is_same_v<std::decay_t<decltype(beg)>,
@@ -119,7 +119,7 @@ struct custom_parser<T, std::enable_if_t<is_recursive_v<T>>> {
 };
 
 template <auto Char>
-struct rec : recursive<either<both<character<Char>, rec<Char>>, end>> {};
+struct rec : recursive<either<both<character<Char>, rec<Char>>, end_t>> {};
 
 TEST(Parsers, ShouldCompile) {
   using opt = std::optional<int>;
@@ -135,30 +135,30 @@ TEST(Parsers, ShouldCompile) {
   static_assert(!match(_c, "!"));
 
   using d = character<'d'>;
-  constexpr auto c_or_d = make_parser(c{} | d{});
+  constexpr auto c_or_d = make_parser(either{c{}, d{}});
   static_assert(match(c_or_d, "c"));
   static_assert(match(c_or_d, "d"));
   static_assert(match(c_or_d, "cd"));
   static_assert(!match(c_or_d, "a"));
 
-  using cd = decltype(c{} + d{});
+  using cd = decltype(both{c{}, d{}});
   constexpr auto _cd = make_parser(cd{});
   static_assert(match(_cd, "cd"));
   static_assert(!match(_cd, "dc"));
   static_assert(!match(_cd, "c"));
 
-  constexpr auto dc = make_parser(d{} + c{});
+  constexpr auto dc = make_parser(both{d{}, c{}});
   static_assert(match(dc, "dca"));
   static_assert(!match(dc, "adc"));
 
-  using any_dc = decltype(any{} + d{} + c{});
+  using any_dc = both<both<any_t, d>, c>;
   constexpr auto _any_dc = make_parser(any_dc{});
   static_assert(match(_any_dc, "adc"));
   static_assert(match(_any_dc, "bdc"));
   static_assert(match(_any_dc, "?dc"));
   static_assert(!match(_any_dc, "?cc"));
 
-  using cd_or_adc = decltype(cd{} | any_dc{});
+  using cd_or_adc = either<cd, any_dc>;
   constexpr auto _cd_or_adc = make_parser(cd_or_adc{});
   static_assert(match(_cd_or_adc, "cd"));
   static_assert(!match(_cd_or_adc, "!cd"));
@@ -173,7 +173,7 @@ TEST(Parsers, ShouldCompile) {
   };
   static_assert(count(many_cs, "cccb") == 3);
 
-  using exactly_c = decltype(c{} + end{});
+  using exactly_c = both<c, end_t>;
   constexpr auto _exactly_c = make_parser(exactly_c{});
   static_assert(match(_exactly_c, "c"));
   static_assert(!match(_exactly_c, "cd"));

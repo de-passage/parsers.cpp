@@ -77,11 +77,11 @@ using dynamic_character = character<nullptr, detail::dynamic<T>>;
 template <class T>
 character(T&&) -> character<nullptr, detail::dynamic<std::decay_t<T>>>;
 
-struct any : satisfy<any> {
+struct any_t : satisfy<any_t> {
   [[nodiscard]] constexpr bool operator()(...) const noexcept { return true; }
 };
 struct fail {};
-struct succeed {};
+struct succeed_t {};
 
 template <class A, class B>
 struct empty_pair {
@@ -135,12 +135,6 @@ either(A&&, B&&) -> either<std::decay_t<A>,
                            std::decay_t<B>,
                            pair<std::decay_t<A>, std::decay_t<B>>>;
 
-template <class A, class B>
-[[nodiscard]] constexpr auto operator|([[maybe_unused]] A&& left,
-                                       [[maybe_unused]] B&& right) noexcept {
-  return either{std::forward<A>(left), std::forward<B>(right)};
-}
-
 template <class A, class B, class C = empty_pair<A, B>>
 struct both : C {
   constexpr both() = default;
@@ -153,12 +147,6 @@ template <class A, class B>
 both(A&&, B&&) -> both<std::decay_t<A>,
                        std::decay_t<B>,
                        pair<std::decay_t<A>, std::decay_t<B>>>;
-template <class A, class B>
-
-[[nodiscard]] constexpr auto operator+([[maybe_unused]] A&& left,
-                                       [[maybe_unused]] B&& right) noexcept {
-  return both{std::forward<A>(left), std::forward<B>(right)};
-}
 
 template <class P>
 struct many {
@@ -166,7 +154,7 @@ struct many {
   constexpr inline static parser_t parser() noexcept { return {}; }
 };
 
-struct end {};
+struct end_t {};
 
 namespace crtp {
 template <class T>
@@ -195,11 +183,6 @@ struct static_string {
   const Char* begin;
   const Char* end;
 };
-
-constexpr static_string<char> operator""_s(const char* str,
-                                           unsigned long long size) noexcept {
-  return static_string<char>{str, str + size};
-}
 
 }  // namespace parsers::description
 

@@ -1,14 +1,15 @@
 #include <gtest/gtest.h>
 #include <parsers/parsers.hpp>
+#include "parsers/dsl.hpp"
 
 #include <string>
-#include "parsers/description.hpp"
 
 using parsers::match;
-using namespace parsers::description;
+using namespace parsers::dsl;
 using namespace std::literals::string_literals;
+using namespace parsers::description;
 
-using eos_t = either<character<'\0'>, end>;
+using eos_t = either<character<'\0'>, end_t>;
 constexpr auto eos = eos_t{};
 
 template <class D, class T>
@@ -19,13 +20,13 @@ template <class D, class T>
 }
 
 TEST(Matcher, ShouldBehaveWithTrivialDescriptors) {
-  static_assert(match(any{}, "a"));
-  static_assert(match(any{}, "b"));
-  static_assert(match(any{}, ""));  // matches trailing 0
-  ASSERT_TRUE(match(any{}, "a"s));
-  ASSERT_TRUE(match(any{}, "b"s));
+  static_assert(match(any, "a"));
+  static_assert(match(any, "b"));
+  static_assert(match(any, ""));  // matches trailing 0
+  ASSERT_TRUE(match(any, "a"s));
+  ASSERT_TRUE(match(any, "b"s));
   // trailing 0 not iterated over
-  ASSERT_FALSE(match(any{}, ""s));
+  ASSERT_FALSE(match(any, ""s));
 
   static_assert(!match(fail{}, "a"));
   static_assert(!match(fail{}, "b"));
@@ -34,18 +35,18 @@ TEST(Matcher, ShouldBehaveWithTrivialDescriptors) {
   ASSERT_FALSE(match(fail{}, "b"s));
   ASSERT_FALSE(match(fail{}, ""s));
 
-  static_assert(!match(end{}, "a"));
-  static_assert(!match(end{}, "b"));
-  static_assert(!match(end{}, ""));  // trailing \0 prevents success
-  ASSERT_FALSE(match(end{}, "a"s));
-  ASSERT_FALSE(match(end{}, "b"s));
+  static_assert(!match(end, "a"));
+  static_assert(!match(end, "b"));
+  static_assert(!match(end, ""));  // trailing \0 prevents success
+  ASSERT_FALSE(match(end, "a"s));
+  ASSERT_FALSE(match(end, "b"s));
   // trailing \0 not processed when iterating over std::string
-  ASSERT_TRUE(match(end{}, ""s));
+  ASSERT_TRUE(match(end, ""s));
 
-  static_assert(match(succeed{}, ""));
-  static_assert(match(succeed{}, "a"));
-  static_assert(match_length(succeed{}, "a") == 0);
-  static_assert(match_length(succeed{}, "") == 0);
+  static_assert(match(succeed, ""));
+  static_assert(match(succeed, "a"));
+  static_assert(match_length(succeed, "a") == 0);
+  static_assert(match_length(succeed, "") == 0);
 }
 
 TEST(Matcher, ShouldMatchSingleCharacter) {
