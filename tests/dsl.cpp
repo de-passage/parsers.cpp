@@ -41,11 +41,11 @@ TEST(Dsl, ShouldHandleCompoundLiterals) {
   static_assert(match(ab_test, "atest"));
   static_assert(match(ab_test, "btest"));
   static_assert(!match(ab_test, "test"));
-  ASSERT_TRUE(match(a_or_b, "a"));
-  ASSERT_TRUE(match(a_or_b, "b"));
-  ASSERT_FALSE(match(a_or_b, "c"));
-  ASSERT_TRUE(match(ab_test, "atest"));
-  ASSERT_TRUE(match(ab_test, "btest"));
-  ASSERT_FALSE(match(ab_test, "test"));
-  ASSERT_TRUE(match(fail | "Hello" | "World!", "Hello"));
+  ASSERT_TRUE(match(a_or_b, "a"s));
+  ASSERT_TRUE(match(a_or_b, "b"s));
+  ASSERT_FALSE(match(a_or_b, "c"s));
+  ASSERT_TRUE(match(ab_test, "atest"s));
+  ASSERT_TRUE(match(ab_test, "btest"s));
+  ASSERT_FALSE(match(ab_test, "test"s));
+  ASSERT_TRUE(match(fail | "Hello" | "World!", "Hello"s));
 }
