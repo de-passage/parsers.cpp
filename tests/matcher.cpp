@@ -147,3 +147,26 @@ TEST(Matcher, StaticStringShouldBehaveCorrectly) {
   static_assert(match(s_or_s2, "yrdy"));
   static_assert(!match(s_or_s2, "trdy"));
 }
+
+TEST(Matcher, DynamicCharactersShouldBehaveCorrectly) {
+  constexpr auto c1 = character{'?'};
+  constexpr auto c2 = character{'!'};
+  static_assert(match(c1, "?"));
+  static_assert(!match(c1, "!"));
+  static_assert(!match(c2, "?"));
+  static_assert(match(c2, "!"));
+  static_assert(match(c1 | c2, "!"));
+  static_assert(match(c1 | c2, "?"));
+  static_assert(!match(c1 | c2, "#"));
+  static_assert(match(c1 + c2, "?!"));
+  static_assert(!match(c1 + c2, "!?"));
+  ASSERT_TRUE(match(c1, "?"s));
+  ASSERT_FALSE(match(c1, "!"s));
+  ASSERT_FALSE(match(c2, "?"s));
+  ASSERT_TRUE(match(c2, "!"s));
+  ASSERT_TRUE(match(c1 | c2, "!"s));
+  ASSERT_TRUE(match(c1 | c2, "?"s));
+  ASSERT_FALSE(match(c1 | c2, "#"s));
+  ASSERT_TRUE(match(c1 + c2, "?!"s));
+  ASSERT_FALSE(match(c1 + c2, "!?"s));
+}
