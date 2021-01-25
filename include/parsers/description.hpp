@@ -53,7 +53,7 @@ struct fail {};
 struct succeed {};
 
 template <class A, class B>
-struct pair {
+struct empty_pair {
   using left_t = A;
   using right_t = B;
   constexpr static inline left_t left() noexcept { return {}; }
@@ -61,24 +61,72 @@ struct pair {
 };
 
 template <class A, class B>
-struct either : pair<A, B> {};
+struct pair {
+  using left_t = A;
+  using right_t = B;
+
+  constexpr pair() = default;
+  template <class T, class U>
+  constexpr pair(T&& l, U&& r) noexcept
+      : _left{std::forward<T>(l)}, _right{std::forward<U>(r)} {}
+
+  constexpr inline const left_t& left() const& noexcept { return _left; }
+  constexpr inline const right_t& right() const& noexcept { return _right; }
+  constexpr inline left_t& left() & noexcept { return _left; }
+  constexpr inline right_t& right() & noexcept { return _right; }
+  constexpr inline const left_t&& left() const&& noexcept {
+    return static_cast<const pair&&>(*this)->_left;
+  }
+  constexpr inline const right_t&& right() const&& noexcept {
+    return static_cast<const pair&&>(*this)->_right;
+  }
+  constexpr inline left_t&& left() && noexcept {
+    return static_cast<const pair&&>(*this)->_left;
+  }
+  constexpr inline right_t&& right() && noexcept {
+    return static_cast<const pair&&>(*this)->_right;
+  }
+
+ private:
+  left_t _left;
+  right_t _right;
+};
+
+template <class A, class B, class C = empty_pair<A, B>>
+struct either : C {
+  constexpr either() = default;
+  template <class T, class U>
+  constexpr either(T&& t, U&& u) noexcept
+      : C{std::forward<T>(t), std::forward<U>(u)} {}
+};
+template <class A, class B>
+either(A&&, B&&) -> either<std::decay_t<A>,
+                           std::decay_t<B>,
+                           pair<std::decay_t<A>, std::decay_t<B>>>;
 
 template <class A, class B>
 [[nodiscard]] constexpr auto operator|([[maybe_unused]] A&& left,
                                        [[maybe_unused]] B&& right) noexcept {
-  return either<std::decay_t<A>, std::decay_t<B>>{};
+  return either{std::forward<A>(left), std::forward<B>(right)};
 }
 
-template <class A, class B>
-struct both : pair<A, B> {};
+template <class A, class B, class C = empty_pair<A, B>>
+struct both : C {
+  constexpr both() = default;
+  template <class T, class U>
+  constexpr both(T&& t, U&& u) noexcept
+      : C{std::forward<T>(t), std::forward<U>(u)} {}
+};
 
 template <class A, class B>
-both(A&&, B&&) -> both<std::decay_t<A>, std::decay_t<B>>;
+both(A&&, B&&) -> both<std::decay_t<A>,
+                       std::decay_t<B>,
+                       pair<std::decay_t<A>, std::decay_t<B>>>;
 template <class A, class B>
 
 [[nodiscard]] constexpr auto operator+([[maybe_unused]] A&& left,
                                        [[maybe_unused]] B&& right) noexcept {
-  return both<std::decay_t<A>, std::decay_t<B>>{};
+  return both{std::forward<A>(left), std::forward<B>(right)};
 }
 
 template <class P>

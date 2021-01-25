@@ -2,6 +2,7 @@
 #define GUARD_PARSERS_INTERPRETERS_MATCHER_HPP
 
 #include "./description.hpp"
+#include "parsers/is_template_instance.hpp"
 
 #include <cctype>
 #include <optional>
@@ -38,10 +39,15 @@ constexpr auto parsers_interpreters_make_matcher(
   };
 }
 
-template <class T, class I>
-constexpr auto parsers_interpreters_make_matcher(
-    description::many<T> descriptor,
-    I interpreter) noexcept {
+namespace detail {
+template <class T, template <class...> class I>
+using instance_of =
+    std::enable_if_t<dpsg::is_template_instance_v<std::decay_t<T>, I>, int>;
+}
+
+template <class M, class I, detail::instance_of<M, description::many> = 0>
+constexpr auto parsers_interpreters_make_matcher(M&& descriptor,
+                                                 I interpreter) noexcept {
   return [parser = interpreter(descriptor.parser())](
              auto beg, auto end) -> std::optional<decltype(beg)> {
     while (beg != end) {
@@ -55,10 +61,9 @@ constexpr auto parsers_interpreters_make_matcher(
   };
 }
 
-template <class A, class B, class I>
-constexpr auto parsers_interpreters_make_matcher(
-    description::both<A, B> descriptor,
-    I interpreter) noexcept {
+template <class B, class I, detail::instance_of<B, description::both> = 0>
+constexpr auto parsers_interpreters_make_matcher(B&& descriptor,
+                                                 I interpreter) noexcept {
   return [left = interpreter(descriptor.left()),
           right = interpreter(descriptor.right())](
              auto beg, auto end) -> std::optional<decltype(beg)> {
@@ -71,10 +76,9 @@ constexpr auto parsers_interpreters_make_matcher(
   };
 }
 
-template <class A, class B, class I>
-constexpr auto parsers_interpreters_make_matcher(
-    description::either<A, B> descriptor,
-    I interpreter) noexcept {
+template <class E, class I, detail::instance_of<E, description::either> = 0>
+constexpr auto parsers_interpreters_make_matcher(E&& descriptor,
+                                                 I interpreter) noexcept {
   return [left = interpreter(descriptor.left()),
           right = interpreter(descriptor.right())](
              auto beg, auto end) -> std::optional<decltype(beg)> {
@@ -127,11 +131,13 @@ constexpr auto parsers_interpreters_make_matcher(
                                       I>{descriptor.parser(), interpreter};
 }
 
-template <class Char, class I>
-constexpr auto parsers_interpreters_make_matcher(
-    description::static_string<Char> descriptor,
-    I interpreter) noexcept {
-  return [descriptor](auto beg, auto end) -> std::optional<decltype(beg)> {
+template <class S,
+          class I,
+          detail::instance_of<S, description::static_string> = 0>
+constexpr auto parsers_interpreters_make_matcher(S&& descriptor,
+                                                 I interpreter) noexcept {
+  return [descriptor = std::forward<S>(descriptor)](
+             auto beg, auto end) -> std::optional<decltype(beg)> {
     auto itb = descriptor.begin;
     while (itb != descriptor.end) {
       if (beg == end || *beg != *itb) {

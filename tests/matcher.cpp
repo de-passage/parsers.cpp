@@ -140,4 +140,10 @@ TEST(Matcher, StaticStringShouldBehaveCorrectly) {
   ASSERT_TRUE(match(s, "test"s));
   ASSERT_TRUE(match(s, "testing"s));
   ASSERT_FALSE(match(s, "tes"s));
+
+  constexpr auto s2 = "yrdy"_s;
+  constexpr auto s_or_s2 = s | s2;
+  static_assert(match(s_or_s2, "test"));
+  static_assert(match(s_or_s2, "yrdy"));
+  static_assert(!match(s_or_s2, "trdy"));
 }
