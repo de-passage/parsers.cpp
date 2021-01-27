@@ -125,7 +125,13 @@ using is_failure = decltype(is_failure_f(std::declval<T>()));
 template <class T>
 constexpr static inline bool is_failure_v = is_failure<T>::value;
 
-struct succeed_t {};
+struct succeed_t {
+  template <class I>
+  constexpr static inline empty build([[maybe_unused]] I&& b,
+                                      [[maybe_unused]] I&& e) noexcept {
+    return {};
+  }
+};
 
 template <class A, class B>
 struct empty_pair {
@@ -241,7 +247,13 @@ struct many {
   constexpr inline static parser_t parser() noexcept { return {}; }
 };
 
-struct end_t {};
+struct end_t {
+  template <class I>
+  constexpr static inline empty build([[maybe_unused]] I&& b,
+                                      [[maybe_unused]] I&& e) noexcept {
+    return {};
+  }
+};
 
 namespace detail {
 template <class T>
@@ -269,6 +281,12 @@ template <class Char>
 struct static_string {
   const Char* begin;
   const Char* end;
+
+  template <class I>
+  constexpr static inline static_string build([[maybe_unused]] I&& b,
+                                              [[maybe_unused]] I&& e) noexcept {
+    return static_string{std::forward<I>(b), std::forward<I>(e)};
+  }
 };
 
 template <class T, class I>

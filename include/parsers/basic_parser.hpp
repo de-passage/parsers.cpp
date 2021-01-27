@@ -58,19 +58,21 @@ template <class I>
 constexpr auto parsers_interpreters_make_parser(
     [[maybe_unused]] description::end_t,
     [[maybe_unused]] I&&) noexcept {
-  return [](auto beg, auto end) -> std::optional<decltype(beg)> {
-    if (beg == end) {
-      return beg;
-    }
-    return {};
-  };
+  return
+      [](auto beg,
+         auto end) -> detail::result_t<I, decltype(beg), description::end_t> {
+        if (beg == end) {
+          return detail::success<I, description::end_t>(beg, beg, end);
+        }
+        return detail::failure<I, description::end_t>(beg, beg, end);
+      };
 }
 
 template <class M, class I, detail::instance_of<M, description::many> = 0>
 constexpr auto parsers_interpreters_make_parser(M&& descriptor,
                                                 I interpreter) noexcept {
   return [parser = interpreter(descriptor.parser())](
-             auto beg, auto end) -> std::optional<decltype(beg)> {
+             auto beg, auto end) -> detail::result_t<I, decltype(beg), M> {
     while (beg != end) {
       auto r = parser(beg, end);
       if (!r.has_value()) {
@@ -87,7 +89,7 @@ constexpr auto parsers_interpreters_make_parser(B&& descriptor,
                                                 I interpreter) noexcept {
   return [left = interpreter(descriptor.left()),
           right = interpreter(descriptor.right())](
-             auto beg, auto end) -> std::optional<decltype(beg)> {
+             auto beg, auto end) -> detail::result_t<I, decltype(beg), B> {
     if (auto r1 = left(beg, end); r1.has_value()) {
       if (auto r2 = right(*r1, end); r2.has_value()) {
         return r2;
@@ -99,10 +101,10 @@ constexpr auto parsers_interpreters_make_parser(B&& descriptor,
 
 template <class E, class I, detail::instance_of<E, description::either> = 0>
 constexpr auto parsers_interpreters_make_parser(E&& descriptor,
-                                                I interpreter) noexcept {
+                                                I&& interpreter) noexcept {
   return [left = interpreter(descriptor.left()),
           right = interpreter(descriptor.right())](
-             auto beg, auto end) -> std::optional<decltype(beg)> {
+             auto beg, auto end) -> detail::result_t<I, decltype(beg), E> {
     if (auto r = left(beg, end); r.has_value()) {
       return r;
     }
@@ -110,12 +112,14 @@ constexpr auto parsers_interpreters_make_parser(E&& descriptor,
   };
 }
 
+template <class I>
 constexpr auto parsers_interpreters_make_parser(
-    [[maybe_unused]] description::succeed_t) noexcept {
-  return
-      [](auto beg, [[maybe_unused]] auto end) -> std::optional<decltype(beg)> {
-        return beg;
-      };
+    [[maybe_unused]] description::succeed_t,
+    I&& interpreter) noexcept {
+  return [](auto beg, auto end)
+             -> detail::result_t<I, decltype(beg), description::succeed_t> {
+    return detail::success<I, description::succeed_t>(beg, beg, end);
+  };
 }
 
 template <class R, class I>
@@ -133,7 +137,7 @@ constexpr auto parsers_interpreters_make_parser(
     S&& descriptor,
     [[maybe_unused]] I interpreter) noexcept {
   return [descriptor = std::forward<S>(descriptor)](
-             auto beg, auto end) -> std::optional<decltype(beg)> {
+             auto beg, auto end) -> detail::result_t<I, decltype(beg), S> {
     auto itb = descriptor.begin;
     while (itb != descriptor.end) {
       if (beg == end || *beg != *itb) {
