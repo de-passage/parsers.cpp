@@ -47,5 +47,7 @@ TEST(Dsl, ShouldHandleCompoundLiterals) {
   ASSERT_TRUE(match(ab_test, "atest"s));
   ASSERT_TRUE(match(ab_test, "btest"s));
   ASSERT_FALSE(match(ab_test, "test"s));
-  ASSERT_TRUE(match(fail | "Hello" | "World!", "Hello"s));
+  ASSERT_TRUE(match("Hello"_s | "World" | '!', "Hello"s));
+  ASSERT_TRUE(match("Hello"_s | "World" | '!', "World"s));
+  ASSERT_TRUE(match("Hello"_s | "World" | '!', "!"s));
 }

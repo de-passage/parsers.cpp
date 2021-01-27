@@ -68,6 +68,16 @@ constexpr auto parsers_interpreters_make_matcher(C (&c)[S],
   return std::forward<T>(interpreter)(
       description::static_string<C>{c, static_cast<C*>(c) + S - 1});
 }
+template <class C, class T, std::enable_if_t<std::is_integral_v<C>, int> = 0>
+constexpr auto parsers_interpreters_make_parser(C c, T&& interpreter) noexcept {
+  return std::forward<T>(interpreter)(description::dynamic_character<C>{c});
+}
+template <class C, std::size_t S, class T>
+constexpr auto parsers_interpreters_make_parser(C (&c)[S],
+                                                T&& interpreter) noexcept {
+  return std::forward<T>(interpreter)(
+      description::static_string<C>{c, static_cast<C*>(c) + S - 1});
+}
 }  // namespace parsers::customization_points
 
 #endif  // GUARD_PARSERS_DSL_HPP

@@ -4,6 +4,9 @@
 #include <iterator>
 #include <type_traits>
 
+#include "./dsl.hpp"
+
+#include "./basic_parser.hpp"
 #include "./description.hpp"
 #include "./matcher.hpp"
 

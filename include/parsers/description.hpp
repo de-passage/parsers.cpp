@@ -1,6 +1,8 @@
 #ifndef GUARD_PARSERS_DESCRIPTIONS_HPP
 #define GUARD_PARSERS_DESCRIPTIONS_HPP
 
+#include "./utility.hpp"
+
 #include <array>
 #include <type_traits>
 
@@ -28,6 +30,13 @@ struct satisfy {
       [[maybe_unused]] const satisfy& unused) noexcept {
     return {};
   }
+
+  template <class I>
+  constexpr static inline std::pair<std::decay_t<I>, std::decay_t<I>> build(
+      I&& beg,
+      I&& end) noexcept {
+    return {std::forward<I>(beg), std::forward<I>(end)};
+  }
 };
 constexpr std::false_type is_satisfiable_predicate_f(...) noexcept {
   return {};
@@ -48,6 +57,12 @@ struct character : satisfy<character<Char, CharT>> {
   template <class C>
   [[nodiscard]] constexpr bool operator()(C&& c) const noexcept {
     return c == value;
+  }
+
+  template <class I>
+  constexpr static inline value_type build([[maybe_unused]] I&& b,
+                                           [[maybe_unused]] I&& e) noexcept {
+    return value;
   }
 };
 
@@ -74,6 +89,12 @@ struct character<nullptr, detail::dynamic<T>>
 
   constexpr const value_type& value() const { return _value; }
 
+  template <class I>
+  constexpr static inline value_type build(I&& b,
+                                           [[maybe_unused]] I&& e) noexcept {
+    return *std::forward<I>(b);
+  }
+
  private:
   value_type _value;
 };
@@ -84,11 +105,19 @@ character(T&&) -> character<nullptr, detail::dynamic<std::decay_t<T>>>;
 
 struct any_t : satisfy<any_t> {
   [[nodiscard]] constexpr bool operator()(...) const noexcept { return true; }
+
+  template <class I>
+  constexpr static inline
+      typename std::iterator_traits<std::decay_t<I>>::value_type
+      build(I&& b, [[maybe_unused]] I&& e) noexcept {
+    return *std::forward<I>(b);
+  }
 };
 
 template <class T>
 struct fail_t {
   friend constexpr std::true_type is_failure_f(fail_t) noexcept;
+  constexpr static inline empty build(...) noexcept;
 };
 constexpr std::false_type is_failure_f(...) noexcept;
 template <class T>
@@ -241,6 +270,9 @@ struct static_string {
   const Char* begin;
   const Char* end;
 };
+
+template <class T, class I>
+using object_t = decltype(T::build(std::declval<I>(), std::declval<I>()));
 
 }  // namespace parsers::description
 
