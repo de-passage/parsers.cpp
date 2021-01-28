@@ -279,14 +279,25 @@ constexpr static inline bool is_recursive_v = is_recursive<T>::value;
 
 template <class Char>
 struct static_string {
-  const Char* begin;
-  const Char* end;
+  using char_t = Char;
+  using pointer_t = const Char*;
+  constexpr static_string(pointer_t beg, pointer_t end) noexcept
+      : _begin(beg), _end(end) {}
+
+  constexpr auto begin() const noexcept { return _begin; }
+  constexpr auto cbegin() const noexcept { return _begin; }
+  constexpr auto end() const noexcept { return _end; }
+  constexpr auto cend() const noexcept { return _end; }
 
   template <class I>
   constexpr static inline static_string build([[maybe_unused]] I&& b,
                                               [[maybe_unused]] I&& e) noexcept {
     return static_string{std::forward<I>(b), std::forward<I>(e)};
   }
+
+ private:
+  pointer_t _begin;
+  pointer_t _end;
 };
 
 template <class T, class I>

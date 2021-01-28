@@ -7,6 +7,10 @@
 
 namespace parsers {
 struct empty {};
+template <class T>
+struct type_t {};
+template <class T>
+constexpr static inline type_t<T> type{};
 
 namespace detail {
 template <class T, template <class...> class I>

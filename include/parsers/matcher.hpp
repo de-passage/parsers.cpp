@@ -107,10 +107,12 @@ template <class S,
 constexpr auto parsers_interpreters_make_matcher(S&& descriptor,
                                                  I interpreter) noexcept {
   return [descriptor = std::forward<S>(descriptor)](
-             auto beg, auto end) -> std::optional<decltype(beg)> {
-    auto itb = descriptor.begin;
-    while (itb != descriptor.end) {
-      if (beg == end || *beg != *itb) {
+             auto beg, auto e) -> std::optional<decltype(beg)> {
+    using std::begin;
+    using std::end;
+    auto itb = begin(descriptor);
+    while (itb != end(descriptor)) {
+      if (beg == e || *beg != *itb) {
         return {};
       }
       ++beg;

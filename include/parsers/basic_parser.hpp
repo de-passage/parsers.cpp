@@ -17,16 +17,22 @@ template <class I, class R, class T>
 using result_t = typename std::decay_t<I>::template result_t<std::decay_t<R>,
                                                              std::decay_t<T>>;
 
-template <class I, class T, class B, class E>
-[[nodiscard]] constexpr auto success(B&& before, B&& after, E&& end) noexcept {
-  return std::decay_t<I>::template success<std::decay_t<T>>(
-      std::forward<B>(before), std::forward<B>(after), std::forward<E>(end));
+template <class I, class T, class... Args>
+[[nodiscard]] constexpr auto success(Args&&... args) noexcept {
+  return std::decay_t<I>::template success(type<std::decay_t<T>>,
+                                           std::forward<Args>(args)...);
 }
 
-template <class I, class T, class B, class E>
-[[nodiscard]] constexpr auto failure(B&& before, B&& after, E&& end) noexcept {
-  return std::decay_t<I>::template failure<std::decay_t<T>>(
-      std::forward<B>(before), std::forward<B>(after), std::forward<E>(end));
+template <class I, class T, class... Args>
+[[nodiscard]] constexpr auto failure(Args&&... args) noexcept {
+  return std::decay_t<I>::template failure(type<std::decay_t<T>>,
+                                           std::forward<Args>(args)...);
+}
+
+template <class I, class T, class... Args>
+[[nodiscard]] constexpr auto combine(Args&&... args) noexcept {
+  return std::decay_t<I>::template combine(type<std::decay_t<T>>,
+                                           std::forward<Args>(args)...);
 }
 }  // namespace detail
 
@@ -73,12 +79,13 @@ constexpr auto parsers_interpreters_make_parser(M&& descriptor,
                                                 I interpreter) noexcept {
   return [parser = interpreter(descriptor.parser())](
              auto beg, auto end) -> detail::result_t<I, decltype(beg), M> {
+    auto acc = detail::success<I, description::many>(beg, beg, end);
     while (beg != end) {
       auto r = parser(beg, end);
       if (!r.has_value()) {
         break;
       }
-      beg = *r;
+      beg = r->first;
     }
     return {beg};
   };
@@ -137,16 +144,19 @@ constexpr auto parsers_interpreters_make_parser(
     S&& descriptor,
     [[maybe_unused]] I interpreter) noexcept {
   return [descriptor = std::forward<S>(descriptor)](
-             auto beg, auto end) -> detail::result_t<I, decltype(beg), S> {
-    auto itb = descriptor.begin;
-    while (itb != descriptor.end) {
-      if (beg == end || *beg != *itb) {
-        return {};
+             auto beg, auto e) -> detail::result_t<I, decltype(beg), S> {
+    using std::end;
+    using std::begin;
+    auto itb = begin(descriptor);
+    auto b = beg;
+    while (itb != end(descriptor)) {
+      if (beg == e || *beg != *itb) {
+        return detail::failure<I, S>(b, beg, e);
       }
       ++beg;
       ++itb;
     }
-    return {beg};
+    return detail::success<I, S>(b, beg, e);
   };
 }
 }  // namespace customization_points
@@ -159,14 +169,16 @@ struct range_parser {
   using result_t = dpsg::result<std::pair<I, I>, I>;
 
   template <class T, class ItB, class ItE>
-  constexpr static inline result_t<ItB> success(ItB before,
+  constexpr static inline result_t<ItB> success([[maybe_unused]] type_t<T>,
+                                                ItB before,
                                                 ItB after,
                                                 [[maybe_unused]] ItE end) {
     return dpsg::success(before, after);
   }
 
   template <class T, class ItB, class ItE>
-  constexpr static inline result_t<ItB> failure([[maybe_unused]] ItB before,
+  constexpr static inline result_t<ItB> failure([[maybe_unused]] type_t<T>,
+                                                [[maybe_unused]] ItB before,
                                                 ItB after,
                                                 [[maybe_unused]] ItE end) {
     return dpsg::failure(after);
@@ -178,14 +190,16 @@ struct object_parser {
   using result_t = dpsg::result<std::pair<I, description::object_t<T, I>>, I>;
 
   template <class T, class ItB, class ItE>
-  constexpr static inline result_t<ItB, T> success(ItB before,
+  constexpr static inline result_t<ItB, T> success([[maybe_unused]] type_t<T>,
+                                                   ItB before,
                                                    ItB after,
                                                    [[maybe_unused]] ItE end) {
     return dpsg::success(after, T::build(before, after));
   }
 
   template <class T, class ItB, class ItE>
-  constexpr static inline result_t<ItB, T> failure([[maybe_unused]] ItB before,
+  constexpr static inline result_t<ItB, T> failure([[maybe_unused]] type_t<T>,
+                                                   [[maybe_unused]] ItB before,
                                                    ItB after,
                                                    [[maybe_unused]] ItE end) {
     return dpsg::failure(after);
