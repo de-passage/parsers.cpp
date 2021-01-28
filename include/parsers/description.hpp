@@ -184,67 +184,42 @@ struct empty_container {
 
 template <class A, class B>
 struct pair {
+ public:
   using left_t = A;
   using right_t = B;
 
+ private:
+  using left_container = container<left_t>;
+  using right_container = container<right_t>;
+  left_container _left;
+  right_container _right;
+
+ public:
   constexpr pair() = default;
 
-  template <class T,
-            class U,
-            std::enable_if_t<!std::is_array_v<std::remove_reference_t<T>> &&
-                                 !std::is_array_v<std::remove_reference_t<U>>,
-                             int> = 0>
+  template <class T, class U>
   constexpr pair(T&& l, U&& r) noexcept
       : _left{std::forward<T>(l)}, _right{std::forward<U>(r)} {}
-
-  template <class T,
-            class U,
-            std::enable_if_t<std::is_array_v<std::remove_reference_t<T>> &&
-                                 !std::is_array_v<std::remove_reference_t<U>>,
-                             int> = 0>
-  constexpr pair(T&& l, U&& r) noexcept : _right{std::forward<U>(r)} {
-    detail::copy(std::begin(l), std::end(l), std::begin(_left));
+  constexpr inline const left_t& left() const& noexcept {
+    return _left.parser();
   }
-
-  template <class T,
-            class U,
-            std::enable_if_t<!std::is_array_v<std::remove_reference_t<T>> &&
-                                 std::is_array_v<std::remove_reference_t<U>>,
-                             int> = 0>
-  constexpr pair(T&& l, U&& r) noexcept : _left{std::forward<T>(l)} {
-    detail::copy(std::begin(r), std::end(r), std::begin(_right));
+  constexpr inline const right_t& right() const& noexcept {
+    return _right.parser();
   }
-
-  template <class T,
-            class U,
-            std::enable_if_t<std::is_array_v<std::remove_reference_t<T>> &&
-                                 std::is_array_v<std::remove_reference_t<U>>,
-                             int> = 0>
-  constexpr pair(T&& l, U&& r) noexcept {
-    detail::copy(std::begin(l), std::end(l), std::begin(_left));
-    detail::copy(std::begin(r), std::end(r), std::begin(_right));
-  }
-
-  constexpr inline const left_t& left() const& noexcept { return _left; }
-  constexpr inline const right_t& right() const& noexcept { return _right; }
-  constexpr inline left_t& left() & noexcept { return _left; }
-  constexpr inline right_t& right() & noexcept { return _right; }
+  constexpr inline left_t& left() & noexcept { return _left.parser(); }
+  constexpr inline right_t& right() & noexcept { return _right.parser(); }
   constexpr inline const left_t&& left() const&& noexcept {
-    return static_cast<const pair&&>(*this)->_left;
+    return static_cast<const pair&&>(*this)._left.parser();
   }
   constexpr inline const right_t&& right() const&& noexcept {
-    return static_cast<const pair&&>(*this)->_right;
+    return static_cast<const pair&&>(*this)._right.parser();
   }
   constexpr inline left_t&& left() && noexcept {
-    return static_cast<const pair&&>(*this)->_left;
+    return static_cast<const pair&&>(*this)._left.parser();
   }
   constexpr inline right_t&& right() && noexcept {
-    return static_cast<const pair&&>(*this)->_right;
+    return static_cast<const pair&&>(*this)._right.parser();
   }
-
- private:
-  left_t _left;
-  right_t _right;
 };
 
 template <class A, class B, class C = empty_pair<A, B>>
