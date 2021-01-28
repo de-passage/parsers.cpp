@@ -32,10 +32,8 @@ struct satisfy {
   }
 
   template <class I>
-  constexpr static inline std::pair<std::decay_t<I>, std::decay_t<I>> build(
-      I&& beg,
-      I&& end) noexcept {
-    return {std::forward<I>(beg), std::forward<I>(end)};
+  constexpr static inline auto build(I&& b, [[maybe_unused]] I&& e) noexcept {
+    return *std::forward<I>(b);
   }
 };
 constexpr std::false_type is_satisfiable_predicate_f(...) noexcept {
@@ -88,12 +86,6 @@ struct character<nullptr, detail::dynamic<T>>
   }
 
   constexpr const value_type& value() const { return _value; }
-
-  template <class I>
-  constexpr static inline value_type build(I&& b,
-                                           [[maybe_unused]] I&& e) noexcept {
-    return *std::forward<I>(b);
-  }
 
  private:
   value_type _value;
@@ -149,6 +141,47 @@ constexpr void copy(It beg, It end, Out out) noexcept {
   }
 }
 }  // namespace detail
+
+template <class T>
+struct container {
+  using parser_t = T;
+
+  constexpr container() noexcept = default;
+  template <class U,
+            std::enable_if_t<!std::is_array_v<std::remove_reference_t<U>> &&
+                                 !std::is_same_v<std::decay_t<U>, container>,
+                             int> = 0>
+  constexpr explicit container(U&& t) noexcept : _parser{std::forward<U>(t)} {}
+  template <
+      class U,
+      std::enable_if_t<std::is_array_v<std::remove_reference_t<U>>, int> = 0>
+  constexpr explicit container(U&& t) noexcept {
+    detail::copy(std::begin(t), std::end(t), std::begin(_parser));
+  }
+
+  [[nodiscard]] constexpr parser_t& parser() & noexcept { return _parser; }
+  [[nodiscard]] constexpr const parser_t& parser() const& noexcept {
+    return _parser;
+  }
+  [[nodiscard]] constexpr parser_t&& parser() && noexcept {
+    return static_cast<container&&>(this)._parser;
+  }
+  [[nodiscard]] constexpr const parser_t&& parser() const&& noexcept {
+    return static_cast<const container&&>(this)._parser;
+  }
+
+ private:
+  parser_t _parser;
+};
+
+template <class T>
+struct empty_container {
+  using parser_t = T;
+  [[nodiscard]] constexpr static inline parser_t parser() noexcept {
+    return parser_t{};
+  }
+};
+
 template <class A, class B>
 struct pair {
   using left_t = A;
@@ -241,11 +274,14 @@ template <class A,
           class B1 = detail::remove_cvref_t<B>>
 both(A&&, B&&) -> both<A1, B1, pair<A1, B1>>;
 
-template <class P>
-struct many {
-  using parser_t = P;
-  constexpr inline static parser_t parser() noexcept { return {}; }
+template <class P, class C = empty_container<P>>
+struct many : C {
+  constexpr many() noexcept = default;
+  template <class Q>
+  constexpr many(Q&& q) : C{std::forward<Q>(q)} {}
 };
+template <class P, class P1 = detail::remove_cvref_t<P>>
+many(P&&) -> many<P1, container<P1>>;
 
 struct end_t {
   template <class I>

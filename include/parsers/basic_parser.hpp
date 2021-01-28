@@ -7,6 +7,7 @@
 
 #include <optional>
 #include <type_traits>
+#include <vector>
 
 namespace parsers {
 namespace customization_points {
@@ -122,7 +123,7 @@ constexpr auto parsers_interpreters_make_parser(E&& descriptor,
 template <class I>
 constexpr auto parsers_interpreters_make_parser(
     [[maybe_unused]] description::succeed_t,
-    I&& interpreter) noexcept {
+    [[maybe_unused]] I&& interpreter) noexcept {
   return [](auto beg, auto end)
              -> detail::result_t<I, decltype(beg), description::succeed_t> {
     return detail::success<I, description::succeed_t>(beg, beg, end);
@@ -186,8 +187,21 @@ struct range_parser {
 };
 
 struct object_parser {
+  template <class T, class I>
+  struct object {
+    using type = description::object_t<std::decay_t<T>, std::decay_t<I>>;
+  };
+  template <class T, class C, class I>
+  struct object<description::many<T, C>, I> {
+    using type =
+        std::vector<typename object<std::decay_t<T>, std::decay_t<I>>::type>;
+  };
+
+  template <class T, class I>
+  using object_t = typename object<std::decay_t<T>, std::decay_t<I>>::type;
+
   template <class I, class T>
-  using result_t = dpsg::result<std::pair<I, description::object_t<T, I>>, I>;
+  using result_t = dpsg::result<std::pair<I, object_t<T, I>>, I>;
 
   template <class T, class ItB, class ItE>
   constexpr static inline result_t<ItB, T> success([[maybe_unused]] type_t<T>,
@@ -203,6 +217,22 @@ struct object_parser {
                                                    ItB after,
                                                    [[maybe_unused]] ItE end) {
     return dpsg::failure(after);
+  }
+
+  template <class T, class I, class... Args>
+  constexpr static inline object_t<T, I> build(
+      [[maybe_unused]] type_t<description::many<T>>,
+      [[maybe_unused]] I&& it,
+      [[maybe_unused]] Args&&...) noexcept {
+    return object_t<T, I>{};
+  }
+
+  template <class T, class Acc, class Add>
+  constexpr static inline void combine(
+      [[maybe_unused]] type_t<description::many<T>>,
+      Acc& acc,
+      Add&& add) noexcept {
+    acc.push_back(std::forward<Add>(add));
   }
 };
 

@@ -71,3 +71,8 @@ TEST(Parsers, StringShouldWork) {
   constexpr auto str = s.value().second;
   static_assert(streq(str, test));
 }
+
+TEST(Parsers, ManyShouldWord) {
+  using parsers::description::many;
+  // const auto p = parse(many{'a'}, "aaaab");
+}
