@@ -17,6 +17,10 @@ template <class T, template <class...> class I>
 using instance_of =
     std::enable_if_t<dpsg::is_template_instance_v<std::decay_t<T>, I>, int>;
 
+template <class T, template <class...> class I>
+using not_instance_of =
+    std::enable_if_t<!dpsg::is_template_instance_v<std::decay_t<T>, I>, int>;
+
 template <class D, class I>
 struct parser_indirection_t {
   using parser_t = D;

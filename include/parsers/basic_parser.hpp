@@ -20,26 +20,45 @@ using result_t = typename std::decay_t<I>::template result_t<std::decay_t<R>,
 
 template <class I, class T, class... Args>
 [[nodiscard]] constexpr auto success(Args&&... args) noexcept {
-  return std::decay_t<I>::template success(type<std::decay_t<T>>,
-                                           std::forward<Args>(args)...);
+  return std::decay_t<I>::success(type<std::decay_t<T>>,
+                                  std::forward<Args>(args)...);
 }
 
 template <class I, class T, class... Args>
 [[nodiscard]] constexpr auto failure(Args&&... args) noexcept {
-  return std::decay_t<I>::template failure(type<std::decay_t<T>>,
-                                           std::forward<Args>(args)...);
+  return std::decay_t<I>::failure(type<std::decay_t<T>>,
+                                  std::forward<Args>(args)...);
 }
 
 template <class I, class T, class... Args>
 [[nodiscard]] constexpr auto combine(Args&&... args) noexcept {
-  return std::decay_t<I>::template combine(type<std::decay_t<T>>,
-                                           std::forward<Args>(args)...);
+  return std::decay_t<I>::combine(type<std::decay_t<T>>,
+                                  std::forward<Args>(args)...);
 }
 
 template <class I, class T, class U>
 [[nodiscard]] constexpr auto init() noexcept {
-  return std::decay_t<I>::template init(type<std::decay_t<T>>,
-                                        type<std::decay_t<U>>);
+  return std::decay_t<I>::init(type<std::decay_t<T>>, type<std::decay_t<U>>);
+}
+
+template <class I, class R>
+[[nodiscard]] constexpr auto next_iterator(R&& result) noexcept {
+  return std::decay_t<I>::next_iterator(std::forward<R>(result));
+}
+
+template <class I, class R>
+[[nodiscard]] constexpr auto has_value(R&& result) noexcept {
+  return std::decay_t<I>::has_value(std::forward<R>(result));
+}
+
+template <class I, class T, class R>
+[[nodiscard]] constexpr auto left(R&& result) noexcept {
+  return std::decay_t<I>::left(type<std::decay_t<T>>, std::forward<R>(result));
+}
+
+template <class I, class T, class R>
+[[nodiscard]] constexpr auto right(R&& result) noexcept {
+  return std::decay_t<I>::right(type<std::decay_t<T>>, std::forward<R>(result));
 }
 }  // namespace detail
 
@@ -88,12 +107,11 @@ constexpr auto parsers_interpreters_make_parser(M&& descriptor,
              auto beg, auto end) -> detail::result_t<I, decltype(beg), M> {
     auto acc = detail::init<I, M, decltype(beg)>();
     while (beg != end) {
-      auto r = parser(beg, end);
-      if (!r.has_value()) {
+      auto r = detail::combine<I, M>(acc, parser(beg, end));
+      if (!detail::has_value<I>(r)) {
         break;
       }
-      detail::combine<I, M>(acc, std::move(r));
-      beg = acc.value().first;
+      beg = detail::next_iterator<I>(std::move(r));
     }
     return acc;
   };
@@ -105,8 +123,8 @@ constexpr auto parsers_interpreters_make_parser(B&& descriptor,
   return [left = interpreter(descriptor.left()),
           right = interpreter(descriptor.right())](
              auto beg, auto end) -> detail::result_t<I, decltype(beg), B> {
-    if (auto r1 = left(beg, end); r1.has_value()) {
-      if (auto r2 = right(*r1, end); r2.has_value()) {
+    if (auto r1 = left(beg, end); detail::has_value<I>(r1)) {
+      if (auto r2 = right(*r1, end); detail::has_value<I>(r2)) {
         return r2;
       }
     }
@@ -120,10 +138,16 @@ constexpr auto parsers_interpreters_make_parser(E&& descriptor,
   return [left = interpreter(descriptor.left()),
           right = interpreter(descriptor.right())](
              auto beg, auto end) -> detail::result_t<I, decltype(beg), E> {
-    if (auto r = left(beg, end); r.has_value()) {
-      return r;
+    if (auto l = left(beg, end); detail::has_value<I>(l)) {
+      return detail::left<I, E>(l);
     }
-    return right(beg, end);
+    else {
+      auto r = right(beg, end);
+      if (detail::has_value<I>(r)) {
+        return detail::right<I, E>(r);
+      }
+      return detail::failure<I, E>(beg, detail::next_iterator<I>(r), end);
+    }
   };
 }
 
@@ -203,6 +227,18 @@ struct object_parser {
     using type =
         std::vector<typename object<std::decay_t<T>, std::decay_t<I>>::type>;
   };
+  template <class A, class B, class C, class I>
+  struct object<description::either<A, B, C>, I> {
+    template <class T>
+    using t_ = typename object<std::decay_t<T>, std::decay_t<I>>::type;
+    using type = std::variant<t_<A>, t_<B>>;
+  };
+  template <class A, class B, class C, class I>
+  struct object<description::both<A, B, C>, I> {
+    template <class T>
+    using t_ = typename object<std::decay_t<T>, std::decay_t<I>>::type;
+    using type = std::pair<t_<A>, t_<B>>;
+  };
 
   template <class I, class T>
   using object_t = typename object<std::decay_t<T>, std::decay_t<I>>::type;
@@ -234,12 +270,49 @@ struct object_parser {
   }
 
   template <class T, class C, class Acc, class Add>
-  constexpr static inline void combine(
+  constexpr static inline auto combine(
       [[maybe_unused]] type_t<description::many<T, C>>,
       Acc& acc,
       Add&& add) noexcept {
-    acc.value().first = std::forward<Add>(add).value().first;
     acc.value().second.push_back(std::forward<Add>(add).value().second);
+    acc.value().first = std::forward<Add>(add).value().first;
+    return std::ref(acc);
+  }
+
+  template <class R, detail::not_instance_of<R, std::reference_wrapper> = 0>
+  constexpr static inline auto next_iterator(R&& r) noexcept {
+    return std::forward<R>(r).value().first;
+  }
+
+  template <class R, detail::not_instance_of<R, std::reference_wrapper> = 0>
+  constexpr static inline bool has_value(R&& r) noexcept {
+    return std::forward<R>(r).has_value();
+  }
+
+  template <class R, detail::instance_of<R, std::reference_wrapper> = 0>
+  constexpr static inline auto next_iterator(R&& r) noexcept {
+    return std::forward<R>(r).get().value().first;
+  }
+
+  template <class R, detail::instance_of<R, std::reference_wrapper> = 0>
+  constexpr static inline bool has_value(R&& r) noexcept {
+    return std::forward<R>(r).get().has_value();
+  }
+
+  template <class R, class E, detail::instance_of<E, description::either> = 0>
+  constexpr static inline auto left(type_t<E>, R&& r) noexcept {
+    return dpsg::success(
+        std::forward<R>(r).value().first,
+        object_t<std::decay_t<decltype(r.value().first)>, E>{
+            std::in_place_index<0>, std::forward<R>(r).value().second});
+  }
+
+  template <class R, class E, detail::instance_of<E, description::either> = 0>
+  constexpr static inline auto right(type_t<E>, R&& r) noexcept {
+    return dpsg::success(
+        std::forward<R>(r).value().first,
+        object_t<std::decay_t<decltype(r.value().first)>, E>{
+            std::in_place_index<1>, std::forward<R>(r).value().second});
   }
 };
 

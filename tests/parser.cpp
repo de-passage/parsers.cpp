@@ -83,3 +83,12 @@ TEST(Parsers, ManyShouldWork) {
     ASSERT_EQ(r[s], 'a');
   }
 }
+
+TEST(Parsers, EitherShouldWork) {
+  using namespace parsers::description;
+  constexpr auto p = parse(either{character<'a'>{}, "te"_s}, "test");
+  static_assert(p.has_value());
+  constexpr auto e = p.value().second;
+  static_assert(e.index() == 1);
+  static_assert(streq(std::get<1>(e), "te"));
+}
