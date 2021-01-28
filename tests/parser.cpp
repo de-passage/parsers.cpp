@@ -86,9 +86,22 @@ TEST(Parsers, ManyShouldWork) {
 
 TEST(Parsers, EitherShouldWork) {
   using namespace parsers::description;
-  constexpr auto p = parse(either{character<'a'>{}, "te"_s}, "test");
+  constexpr auto d = either{character<'a'>{}, "te"_s};
+  constexpr auto p = parse(d, "test");
   static_assert(p.has_value());
   constexpr auto e = p.value().second;
   static_assert(e.index() == 1);
   static_assert(streq(std::get<1>(e), "te"));
+  static_assert(parse(d, "nope").is_error());
+}
+
+TEST(Parsers, BothShouldWork) {
+  using namespace parsers::description;
+  constexpr auto d = both{character<'H'>{}, "ello"_s};
+  constexpr auto p = parse(d, "Hello World!");
+  static_assert(p.has_value());
+  constexpr auto b = p.value().second;
+  static_assert(std::get<0>(b) == 'H');
+  static_assert(streq(std::get<1>(b), "ello"));
+  static_assert(parse(d, "Hi there").is_error());
 }

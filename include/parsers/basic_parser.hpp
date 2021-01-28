@@ -60,6 +60,12 @@ template <class I, class T, class R>
 [[nodiscard]] constexpr auto right(R&& result) noexcept {
   return std::decay_t<I>::right(type<std::decay_t<T>>, std::forward<R>(result));
 }
+
+template <class I, class T, class L, class R>
+[[nodiscard]] constexpr auto both(L&& left, R&& right) noexcept {
+  return std::decay_t<I>::both(
+      type<std::decay_t<T>>, std::forward<L>(left), std::forward<R>(right));
+}
 }  // namespace detail
 
 template <class F,
@@ -124,11 +130,17 @@ constexpr auto parsers_interpreters_make_parser(B&& descriptor,
           right = interpreter(descriptor.right())](
              auto beg, auto end) -> detail::result_t<I, decltype(beg), B> {
     if (auto r1 = left(beg, end); detail::has_value<I>(r1)) {
-      if (auto r2 = right(*r1, end); detail::has_value<I>(r2)) {
-        return r2;
+      if (auto r2 = right(detail::next_iterator<I>(r1), end);
+          detail::has_value<I>(r2)) {
+        return detail::both<I, B>(std::move(r1), std::move(r2));
+      }
+      else {
+        return detail::failure<I, B>(beg, detail::next_iterator<I>(r1), end);
       }
     }
-    return {};
+    else {
+      return detail::failure<I, B>(beg, beg, end);
+    }
   };
 }
 
@@ -141,13 +153,11 @@ constexpr auto parsers_interpreters_make_parser(E&& descriptor,
     if (auto l = left(beg, end); detail::has_value<I>(l)) {
       return detail::left<I, E>(l);
     }
-    else {
-      auto r = right(beg, end);
-      if (detail::has_value<I>(r)) {
-        return detail::right<I, E>(r);
-      }
-      return detail::failure<I, E>(beg, detail::next_iterator<I>(r), end);
+    auto r = right(beg, end);
+    if (detail::has_value<I>(r)) {
+      return detail::right<I, E>(r);
     }
+    return detail::failure<I, E>(beg, beg, end);
   };
 }
 
@@ -313,6 +323,18 @@ struct object_parser {
         std::forward<R>(r).value().first,
         object_t<std::decay_t<decltype(r.value().first)>, E>{
             std::in_place_index<1>, std::forward<R>(r).value().second});
+  }
+
+  template <class L,
+            class R,
+            class B,
+            detail::instance_of<B, description::both> = 0>
+  constexpr static inline auto both(type_t<B>, L&& left, R&& right) noexcept {
+    return dpsg::success(
+        std::forward<R>(right).value().first,
+        object_t<std::decay_t<decltype(right.value().first)>, B>{
+            std::forward<L>(left).value().second,
+            std::forward<R>(right).value().second});
   }
 };
 
