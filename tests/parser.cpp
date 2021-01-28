@@ -72,7 +72,14 @@ TEST(Parsers, StringShouldWork) {
   static_assert(streq(str, test));
 }
 
-TEST(Parsers, ManyShouldWord) {
+TEST(Parsers, ManyShouldWork) {
+  using parsers::description::character;
   using parsers::description::many;
-  // const auto p = parse(many{'a'}, "aaaab");
+  const auto p = parse(many{character<'a'>{}}, "aaaab");
+  ASSERT_TRUE(p.has_value());
+  const auto& r = p.value().second;
+  ASSERT_EQ(r.size(), 4);
+  for (std::size_t s = 0; s < r.size(); ++s) {
+    ASSERT_EQ(r[s], 'a');
+  }
 }

@@ -35,6 +35,12 @@ template <class I, class T, class... Args>
   return std::decay_t<I>::template combine(type<std::decay_t<T>>,
                                            std::forward<Args>(args)...);
 }
+
+template <class I, class T, class U>
+[[nodiscard]] constexpr auto init() noexcept {
+  return std::decay_t<I>::template init(type<std::decay_t<T>>,
+                                        type<std::decay_t<U>>);
+}
 }  // namespace detail
 
 template <class F,
@@ -80,15 +86,16 @@ constexpr auto parsers_interpreters_make_parser(M&& descriptor,
                                                 I interpreter) noexcept {
   return [parser = interpreter(descriptor.parser())](
              auto beg, auto end) -> detail::result_t<I, decltype(beg), M> {
-    auto acc = detail::success<I, description::many>(beg, beg, end);
+    auto acc = detail::init<I, M, decltype(beg)>();
     while (beg != end) {
       auto r = parser(beg, end);
       if (!r.has_value()) {
         break;
       }
-      beg = r->first;
+      detail::combine<I, M>(acc, std::move(r));
+      beg = acc.value().first;
     }
-    return {beg};
+    return acc;
   };
 }
 
@@ -197,11 +204,11 @@ struct object_parser {
         std::vector<typename object<std::decay_t<T>, std::decay_t<I>>::type>;
   };
 
-  template <class T, class I>
+  template <class I, class T>
   using object_t = typename object<std::decay_t<T>, std::decay_t<I>>::type;
 
   template <class I, class T>
-  using result_t = dpsg::result<std::pair<I, object_t<T, I>>, I>;
+  using result_t = dpsg::result<std::pair<I, object_t<I, T>>, I>;
 
   template <class T, class ItB, class ItE>
   constexpr static inline result_t<ItB, T> success([[maybe_unused]] type_t<T>,
@@ -219,20 +226,20 @@ struct object_parser {
     return dpsg::failure(after);
   }
 
-  template <class T, class I, class... Args>
-  constexpr static inline object_t<T, I> build(
-      [[maybe_unused]] type_t<description::many<T>>,
-      [[maybe_unused]] I&& it,
-      [[maybe_unused]] Args&&...) noexcept {
-    return object_t<T, I>{};
+  template <class... Ms, class I>
+  constexpr static inline result_t<I, description::many<Ms...>> init(
+      [[maybe_unused]] type_t<description::many<Ms...>>,
+      [[maybe_unused]] type_t<I>) noexcept {
+    return dpsg::success();
   }
 
-  template <class T, class Acc, class Add>
+  template <class T, class C, class Acc, class Add>
   constexpr static inline void combine(
-      [[maybe_unused]] type_t<description::many<T>>,
+      [[maybe_unused]] type_t<description::many<T, C>>,
       Acc& acc,
       Add&& add) noexcept {
-    acc.push_back(std::forward<Add>(add));
+    acc.value().first = std::forward<Add>(add).value().first;
+    acc.value().second.push_back(std::forward<Add>(add).value().second);
   }
 };
 
