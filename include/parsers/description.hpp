@@ -295,6 +295,11 @@ struct static_string {
   constexpr static_string(pointer_t beg, pointer_t end) noexcept
       : _begin(beg), _end(end) {}
 
+  template <class T, std::size_t S>
+  constexpr explicit static_string(T (&arr)[S]) noexcept
+      : _begin(static_cast<pointer_t>(arr)),
+        _end(static_cast<pointer_t>(arr) + S - 1) {}
+
   constexpr auto begin() const noexcept { return _begin; }
   constexpr auto cbegin() const noexcept { return _begin; }
   constexpr auto end() const noexcept { return _end; }
@@ -310,6 +315,8 @@ struct static_string {
   pointer_t _begin;
   pointer_t _end;
 };
+template <class T, std::size_t S>
+static_string(T (&)[S]) -> static_string<std::decay_t<T>>;
 
 template <class T, class I>
 using object_t = decltype(T::build(std::declval<I>(), std::declval<I>()));

@@ -52,7 +52,7 @@ struct range_parser {
 
   template <class R, detail::not_instance_of<R, std::reference_wrapper> = 0>
   constexpr static inline auto next_iterator(R&& r) noexcept {
-    return std::forward<R>(r).value().first;
+    return std::forward<R>(r).value().second;
   }
 
   template <class R, detail::not_instance_of<R, std::reference_wrapper> = 0>
@@ -62,7 +62,7 @@ struct range_parser {
 
   template <class R, detail::instance_of<R, std::reference_wrapper> = 0>
   constexpr static inline auto next_iterator(R&& r) noexcept {
-    return std::forward<R>(r).get().value().first;
+    return std::forward<R>(r).get().value().second;
   }
 
   template <class R, detail::instance_of<R, std::reference_wrapper> = 0>
@@ -85,7 +85,8 @@ struct range_parser {
             class B,
             detail::instance_of<B, description::both> = 0>
   constexpr static inline auto both(type_t<B>, L&& left, R&& right) noexcept {
-    return dpsg::success();
+    return dpsg::success(std::forward<L>(left).value().first,
+                         std::forward<R>(right).value().second);
   }
 };
 
