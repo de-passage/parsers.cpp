@@ -99,3 +99,15 @@ TEST(RangeParser, ManyShouldAggregateResults) {
   static_assert(streq(string(p1.value()), "ababab"));
   static_assert(streq(string(p2.value()), ""));
 }
+
+TEST(RangeParser, RecursiveShouldAggregateResults) {
+  struct rec_t : recursive<either<both<character<'a'>, rec_t>,
+                                  either<character<'\0'>, end_t>>> {
+  } constexpr rec;
+  constexpr auto p1 = parse(rec, "aaa");
+  constexpr auto p2 = parse(rec, ""_s);
+  static_assert(p1.has_value());
+  static_assert(p2.has_value());
+  static_assert(streq(string(p1.value()), "aaa"));
+  static_assert(streq(string(p2.value()), ""_s));
+}
