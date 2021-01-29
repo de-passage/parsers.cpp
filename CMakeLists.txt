@@ -48,7 +48,7 @@ add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
 # later. Otherwise we have to add them here ourselves.
 include_directories("${gtest_SOURCE_DIR}/include")
 
-set (TEST_SRC_FILES parsers.cpp matcher.cpp dsl.cpp parser.cpp)
+set (TEST_SRC_FILES parsers.cpp matcher.cpp dsl.cpp object_parser.cpp range_parser.cpp)
 list (TRANSFORM TEST_SRC_FILES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
 add_executable(tests ${TEST_SRC_FILES})
 target_link_libraries(tests gtest_main)
