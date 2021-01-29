@@ -20,7 +20,7 @@ template <class D, class T>
 
 using namespace parsers::dsl;
 
-TEST(Parsers, TrivialParsersShouldWork) {
+TEST(ObjectParser, TrivialParsersShouldWork) {
   constexpr auto r = parse(fail, "test");
   static_assert(r.is_error());
   constexpr auto s = parse(succeed, "test");
@@ -33,7 +33,7 @@ TEST(Parsers, TrivialParsersShouldWork) {
   static_assert(a.value().second == 't');
 }
 
-TEST(Parsers, CharacterShouldWork) {
+TEST(ObjectParser, CharacterShouldWork) {
   constexpr const auto& test = "test";
   constexpr auto c = parse('c', test);
   static_assert(c.is_error());
@@ -43,7 +43,7 @@ TEST(Parsers, CharacterShouldWork) {
 }
 
 using parsers::description::static_string;
-TEST(Parsers, StringShouldWork) {
+TEST(ObjectParser, StringShouldWork) {
   constexpr const auto& test = "test";
   constexpr auto s = parse(test, "test string");
   static_assert(s.has_value());
@@ -51,7 +51,7 @@ TEST(Parsers, StringShouldWork) {
   static_assert(streq(str, test));
 }
 
-TEST(Parsers, ManyShouldWork) {
+TEST(ObjectParser, ManyShouldWork) {
   using parsers::description::character;
   using parsers::description::many;
   const auto p = parse(many{character<'a'>{}}, "aaaab");
@@ -63,7 +63,7 @@ TEST(Parsers, ManyShouldWork) {
   }
 }
 
-TEST(Parsers, EitherShouldWork) {
+TEST(ObjectParser, EitherShouldWork) {
   using namespace parsers::description;
   constexpr auto d = either{character<'a'>{}, "te"_s};
   constexpr auto p = parse(d, "test");
@@ -74,7 +74,7 @@ TEST(Parsers, EitherShouldWork) {
   static_assert(parse(d, "nope").is_error());
 }
 
-TEST(Parsers, BothShouldWork) {
+TEST(ObjectParser, BothShouldWork) {
   using namespace parsers::description;
   constexpr auto d = both{character<'H'>{}, "ello"_s};
   constexpr auto p = parse(d, "Hello World!");
