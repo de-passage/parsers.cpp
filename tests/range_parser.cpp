@@ -69,7 +69,33 @@ TEST(RangeParser, StringShouldWork) {
 }
 
 TEST(RangeParser, BothShouldCombineResults) {
-  auto p = parse(both{character{'a'}, static_string{"ny"}}, "anything");
-  ASSERT_TRUE(p.has_value());
-  ASSERT_TRUE(streq(string(p.value()), "any"));
+  constexpr auto d = both{character{'a'}, static_string{"ny"}};
+  constexpr auto p1 = parse(d, "anything");
+  constexpr auto p2 = parse(d, "nothing");
+
+  static_assert(p1.has_value());
+  static_assert(streq(string(p1.value()), "any"));
+  static_assert(p2.is_error());
+}
+
+TEST(RangeParser, EitherShouldSelectResult) {
+  constexpr auto d = either{character{'H'}, static_string{"str"}};
+  constexpr auto p1 = parse(d, "Hello World");
+  constexpr auto p2 = parse(d, "string");
+  constexpr auto p3 = parse(d, "none");
+  static_assert(p1.has_value());
+  static_assert(p2.has_value());
+  static_assert(p3.is_error());
+  static_assert(streq(string(p1.value()), "H"));
+  static_assert(streq(string(p2.value()), "str"));
+}
+
+TEST(RangeParser, ManyShouldAggregateResults) {
+  constexpr auto d = many{static_string{"ab"}};
+  constexpr auto p1 = parse(d, "abababcab");
+  constexpr auto p2 = parse(d, "dababab");
+  static_assert(p1.has_value());
+  static_assert(p2.has_value());
+  static_assert(streq(string(p1.value()), "ababab"));
+  static_assert(streq(string(p2.value()), ""));
 }

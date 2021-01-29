@@ -14,7 +14,8 @@ using namespace ::parsers::detail;
 
 struct range_parser {
   template <class I, class T = I>
-  using result_t = dpsg::result<std::pair<I, I>, I>;
+  using result_t = dpsg::result<std::pair<std::decay_t<I>, std::decay_t<I>>,
+                                std::decay_t<I>>;
 
   template <class T, class ItB, class ItE>
   constexpr static inline result_t<ItB> success([[maybe_unused]] type_t<T>,
@@ -33,7 +34,7 @@ struct range_parser {
   }
 
   template <class... Ms, class ItE, class ItB>
-  constexpr static inline result_t<ItB, description::many<Ms...>> init(
+  constexpr static inline result_t<ItB> init(
       [[maybe_unused]] type_t<description::many<Ms...>>,
       ItB&& beg,
       ItE&& end) noexcept {
@@ -45,39 +46,40 @@ struct range_parser {
       [[maybe_unused]] type_t<description::many<T, C>>,
       Acc& acc,
       Add&& add) noexcept {
-    acc.value().second.push_back(std::forward<Add>(add).value().second);
-    acc.value().first = std::forward<Add>(add).value().first;
-    return std::ref(acc);
+    if (add.has_value()) {
+      acc.value().second = std::forward<Add>(add).value().second;
+    }
+    return add;
   }
 
-  template <class R, detail::not_instance_of<R, std::reference_wrapper> = 0>
+  template <class R, detail::not_instance_of<R, detail::reference_wrapper> = 0>
   constexpr static inline auto next_iterator(R&& r) noexcept {
     return std::forward<R>(r).value().second;
   }
 
-  template <class R, detail::not_instance_of<R, std::reference_wrapper> = 0>
+  template <class R, detail::not_instance_of<R, detail::reference_wrapper> = 0>
   constexpr static inline bool has_value(R&& r) noexcept {
     return std::forward<R>(r).has_value();
   }
 
-  template <class R, detail::instance_of<R, std::reference_wrapper> = 0>
+  template <class R, detail::instance_of<R, detail::reference_wrapper> = 0>
   constexpr static inline auto next_iterator(R&& r) noexcept {
-    return std::forward<R>(r).get().value().second;
+    return std::forward<R>(r)->value().second;
   }
 
-  template <class R, detail::instance_of<R, std::reference_wrapper> = 0>
+  template <class R, detail::instance_of<R, detail::reference_wrapper> = 0>
   constexpr static inline bool has_value(R&& r) noexcept {
-    return std::forward<R>(r).get().has_value();
+    return std::forward<R>(r)->has_value();
   }
 
   template <class R, class E, detail::instance_of<E, description::either> = 0>
   constexpr static inline auto left(type_t<E>, R&& r) noexcept {
-    return dpsg::success();
+    return std::forward<R>(r);
   }
 
   template <class R, class E, detail::instance_of<E, description::either> = 0>
   constexpr static inline auto right(type_t<E>, R&& r) noexcept {
-    return dpsg::success();
+    return std::forward<R>(r);
   }
 
   template <class L,

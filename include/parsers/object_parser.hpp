@@ -112,7 +112,7 @@ constexpr auto parsers_interpreters_make_parser(M&& descriptor,
                                                 I interpreter) noexcept {
   return [parser = interpreter(descriptor.parser())](
              auto beg, auto end) -> detail::result_t<I, decltype(beg), M> {
-    auto acc = detail::init<I, M>(beg, end);
+    auto acc = detail::init<I, M>(beg, beg);
     while (beg != end) {
       auto r = detail::combine<I, M>(acc, parser(beg, end));
       if (!detail::has_value<I>(r)) {
