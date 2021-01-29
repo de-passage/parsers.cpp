@@ -267,9 +267,11 @@ struct object_parser {
       [[maybe_unused]] type_t<description::many<T, C>>,
       Acc& acc,
       Add&& add) noexcept {
-    acc.value().second.push_back(std::forward<Add>(add).value().second);
-    acc.value().first = std::forward<Add>(add).value().first;
-    return std::ref(acc);
+    if (add.has_value()) {
+      acc.value().second.push_back(std::forward<Add>(add).value().second);
+      acc.value().first = std::forward<Add>(add).value().first;
+    }
+    return std::ref(add);
   }
 
   template <class R, detail::not_instance_of<R, std::reference_wrapper> = 0>
