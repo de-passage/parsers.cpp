@@ -9,6 +9,30 @@ namespace parsers::customization_points {
 namespace detail {
 using namespace ::parsers::detail;
 
+template <class D, class I>
+struct parser_indirection_t {
+  using parser_t = D;
+  using interpreter_t = I;
+  constexpr explicit parser_indirection_t(parser_t parser,
+                                          interpreter_t interpreter) noexcept
+      : parser{parser}, interpreter{interpreter} {}
+
+  template <class K, class J>
+  [[nodiscard]] constexpr inline auto operator()(K begin,
+                                                 J end) const noexcept {
+    if constexpr (std::is_invocable_v<interpreter_t, parser_t, interpreter_t>) {
+      return interpreter(parser, interpreter)(begin, end);
+    }
+    else {
+      return interpreter(parser)(begin, end);
+    }
+  }
+
+ private:
+  parser_t parser;
+  interpreter_t interpreter;
+};
+
 template <class I, class R, class T>
 using result_t = typename std::decay_t<I>::template result_t<std::decay_t<R>,
                                                              std::decay_t<T>>;
@@ -143,11 +167,11 @@ constexpr auto parsers_interpreters_make_parser(E&& descriptor,
           right = interpreter(descriptor.right())](
              auto beg, auto end) -> detail::result_t<I, decltype(beg), E> {
     if (auto l = left(beg, end); detail::has_value<I>(l)) {
-      return detail::left<I, E>(l);
+      return detail::left<I, E>(std::move(l));
     }
     auto r = right(beg, end);
     if (detail::has_value<I>(r)) {
-      return detail::right<I, E>(r);
+      return detail::right<I, E>(std::move(r));
     }
     return detail::failure<I, E>(beg, beg, end);
   };

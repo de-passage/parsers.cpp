@@ -5,6 +5,7 @@
 #include "./result.hpp"
 #include "./utility.hpp"
 
+#include <memory>
 #include <optional>
 #include <type_traits>
 #include <vector>
@@ -14,13 +15,39 @@ namespace parsers {
 namespace interpreters {
 namespace detail {
 using namespace ::parsers::detail;
-}
+
+template <class T, class P, class I>
+struct unique_ptr {
+  using type = unique_ptr<T, P, I>;
+
+  template <class U>
+  unique_ptr(U&& u) : _ptr{new U{std::forward<U>(u)}} {
+    static_assert(
+        std::is_same_v<std::decay_t<U>,
+                       typename P::template object_t<I, typename T::parser_t>>);
+  }
+
+ private:
+  struct deleter {
+    void operator()(void* ptr) {
+      delete static_cast<
+          typename P::template object_t<I, typename T::parser_t>*>(ptr);
+    }
+  };
+  using pointer = std::unique_ptr<void, deleter>;
+  pointer _ptr;
+};
+}  // namespace detail
 
 struct object_parser {
   template <class T, class I>
   struct object {
-    using type = description::object_t<std::decay_t<T>, std::decay_t<I>>;
+    using type = typename std::conditional_t<
+        description::is_recursive_v<T>,
+        detail::unique_ptr<T, object_parser, I>,
+        description::object<std::decay_t<T>, std::decay_t<I>>>::type;
   };
+
   template <class T, class C, class I>
   struct object<description::many<T, C>, I> {
     using type =

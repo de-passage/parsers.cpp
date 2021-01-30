@@ -282,6 +282,7 @@ struct recursive : detail::construct_parser_t<recursive<T>> {
 
   using parser_t = T;
 };
+
 constexpr std::false_type is_recursive_f(...) noexcept;
 template <class T>
 using is_recursive = decltype(is_recursive_f(std::declval<T>()));
@@ -319,7 +320,11 @@ template <class T, std::size_t S>
 static_string(T (&)[S]) -> static_string<std::decay_t<T>>;
 
 template <class T, class I>
-using object_t = decltype(T::build(std::declval<I>(), std::declval<I>()));
+struct object {
+  using type = decltype(T::build(std::declval<I>(), std::declval<I>()));
+};
+template <class T, class I>
+using object_t = typename object<T, I>::type;
 
 }  // namespace parsers::description
 

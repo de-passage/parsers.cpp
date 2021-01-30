@@ -84,3 +84,15 @@ TEST(ObjectParser, BothShouldWork) {
   static_assert(streq(std::get<1>(b), "ello"));
   static_assert(parse(d, "Hi there").is_error());
 }
+
+TEST(ObjectParser, RecursiveShouldWork) {
+  using namespace parsers::description;
+  struct rec_t : recursive<either<both<character<'a'>, rec_t>,
+                                  either<character<'\0'>, end_t>>> {
+  } constexpr rec;
+  auto p = parse(rec, "aa");
+  ASSERT_TRUE(p.has_value());
+  ASSERT_TRUE(p.value().second.index() == 0);
+  auto& l = std::get<0>(p.value().second);
+  ASSERT_TRUE(l.first == 'a');
+}
