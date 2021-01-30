@@ -92,7 +92,16 @@ TEST(ObjectParser, RecursiveShouldWork) {
   } constexpr rec;
   auto p = parse(rec, "aa");
   ASSERT_TRUE(p.has_value());
-  ASSERT_TRUE(p.value().second.index() == 0);
+  ASSERT_EQ(p.value().second.index(), 0);
   auto& l = std::get<0>(p.value().second);
-  ASSERT_TRUE(l.first == 'a');
+  ASSERT_EQ(l.first, 'a');
+  ASSERT_TRUE(l.second);
+  auto& ls = *l.second;
+  ASSERT_EQ(ls.index(), 0);
+  auto& lsl = std::get<0>(ls);
+  ASSERT_EQ(lsl.first, 'a');
+  ASSERT_TRUE(lsl.second);
+  auto& lsls = *lsl.second;
+  ASSERT_EQ(lsls.index(), 1);
+  ASSERT_EQ(std::get<1>(lsls).index(), 0);
 }

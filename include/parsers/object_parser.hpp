@@ -17,21 +17,67 @@ namespace detail {
 using namespace ::parsers::detail;
 
 template <class T, class P, class I>
+using recursive_pointer_type =
+    typename P::template object_t<I, typename T::parser_t>;
+
+template <class T, class P, class I>
 struct unique_ptr {
   using type = unique_ptr<T, P, I>;
 
   template <class U>
-  unique_ptr(U&& u) : _ptr{new U{std::forward<U>(u)}} {
+  unique_ptr(U&& u) : _ptr{new U(std::forward<U>(u))} {
     static_assert(
-        std::is_same_v<std::decay_t<U>,
-                       typename P::template object_t<I, typename T::parser_t>>);
+        std::is_same_v<std::decay_t<U>, recursive_pointer_type<T, P, I>>);
+  }
+
+  operator bool() const noexcept { return !!_ptr; }
+
+  template <class U>
+  friend bool operator==(const unique_ptr& ptr, U&& other) noexcept {
+    return _ptr == std::forward<U>(other);
+  }
+
+  template <class U>
+  friend bool operator==(U&& other, const unique_ptr& ptr) noexcept {
+    return _ptr == std::forward<U>(other);
+  }
+
+  friend bool operator==(const unique_ptr& left,
+                         const unique_ptr& right) noexcept {
+    return left._ptr == right._ptr;
+  }
+
+  template <class U>
+  friend bool operator!=(const unique_ptr& ptr, U&& other) noexcept {
+    return _ptr != std::forward<U>(other);
+  }
+
+  template <class U>
+  friend bool operator!=(U&& other, const unique_ptr& ptr) noexcept {
+    return _ptr != std::forward<U>(other);
+  }
+
+  friend bool operator!=(const unique_ptr& left,
+                         const unique_ptr& right) noexcept {
+    return left._ptr != right._ptr;
+  }
+
+  [[nodiscard]] auto* get() const {
+    return static_cast<recursive_pointer_type<T, P, I>*>(_ptr.get());
+  }
+
+  auto* operator->() const noexcept { return get(); }
+
+  [[nodiscard]] auto& operator*() const noexcept { return *get(); }
+
+  [[nodiscard]] auto* release() noexcept {
+    return static_cast<recursive_pointer_type<T, P, I>*>(_ptr.release());
   }
 
  private:
   struct deleter {
     void operator()(void* ptr) {
-      delete static_cast<
-          typename P::template object_t<I, typename T::parser_t>*>(ptr);
+      delete static_cast<recursive_pointer_type<T, P, I>*>(ptr);
     }
   };
   using pointer = std::unique_ptr<void, deleter>;
