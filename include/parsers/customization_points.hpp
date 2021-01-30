@@ -166,9 +166,10 @@ constexpr auto parsers_interpreters_make_parser(
 template <class R, class I>
 constexpr auto parsers_interpreters_make_parser(
     description::recursive<R> descriptor,
-    I interpreter) noexcept {
+    I&& interpreter) noexcept {
   return detail::parser_indirection_t<typename decltype(descriptor)::parser_t,
-                                      I>{descriptor.parser(), interpreter};
+                                      std::decay_t<I>>{
+      descriptor.parser(), std::forward<I>(interpreter)};
 }
 
 template <class S,

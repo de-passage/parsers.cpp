@@ -41,8 +41,8 @@ template <class Descriptor, class T>
                                    const T& input) noexcept {
   using std::begin;
   using std::end;
-  const auto matcher =
-      interpreters::make_matcher(std::forward<Descriptor>(descriptor));
+  const auto matcher = interpreters::make_parser<interpreters::matcher>(
+      std::forward<Descriptor>(descriptor));
   auto b = begin(input);
   auto e = end(input);
   return matcher(b, e);

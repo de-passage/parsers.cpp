@@ -4,159 +4,88 @@
 #include "./description.hpp"
 #include "./utility.hpp"
 
-#include <cctype>
 #include <optional>
 #include <type_traits>
 
-namespace parsers {
-namespace customization_points {
-
-template <class F, std::enable_if_t<description::is_failure_v<F>, int> = 0>
-constexpr auto parsers_interpreters_make_matcher(
-    [[maybe_unused]] F&&) noexcept {
-  return []([[maybe_unused]] auto beg,
-            [[maybe_unused]] auto end) -> std::optional<decltype(beg)> {
-    return {};
-  };
-}
-
-template <class T,
-          std::enable_if_t<description::is_satisfiable_predicate_v<T>, int> = 0>
-constexpr auto parsers_interpreters_make_matcher(T pred) {
-  return [pred](auto beg, auto end) -> std::optional<decltype(beg)> {
-    if (beg != end && pred(*beg)) {
-      return {++beg};
-    }
-    return {};
-  };
-}
-
-constexpr auto parsers_interpreters_make_matcher(
-    [[maybe_unused]] description::end_t) noexcept {
-  return [](auto beg, auto end) -> std::optional<decltype(beg)> {
-    if (beg == end) {
-      return beg;
-    }
-    return {};
-  };
-}
-
-template <class M, class I, detail::instance_of<M, description::many> = 0>
-constexpr auto parsers_interpreters_make_matcher(M&& descriptor,
-                                                 I interpreter) noexcept {
-  return [parser = interpreter(descriptor.parser())](
-             auto beg, auto end) -> std::optional<decltype(beg)> {
-    while (beg != end) {
-      auto r = parser(beg, end);
-      if (!r.has_value()) {
-        break;
-      }
-      beg = *r;
-    }
-    return {beg};
-  };
-}
-
-template <class B, class I, detail::instance_of<B, description::both> = 0>
-constexpr auto parsers_interpreters_make_matcher(B&& descriptor,
-                                                 I interpreter) noexcept {
-  return [left = interpreter(descriptor.left()),
-          right = interpreter(descriptor.right())](
-             auto beg, auto end) -> std::optional<decltype(beg)> {
-    if (auto r1 = left(beg, end); r1.has_value()) {
-      if (auto r2 = right(*r1, end); r2.has_value()) {
-        return r2;
-      }
-    }
-    return {};
-  };
-}
-
-template <class E, class I, detail::instance_of<E, description::either> = 0>
-constexpr auto parsers_interpreters_make_matcher(E&& descriptor,
-                                                 I interpreter) noexcept {
-  return [left = interpreter(descriptor.left()),
-          right = interpreter(descriptor.right())](
-             auto beg, auto end) -> std::optional<decltype(beg)> {
-    if (auto r = left(beg, end); r.has_value()) {
-      return r;
-    }
-    return right(beg, end);
-  };
-}
-
-constexpr auto parsers_interpreters_make_matcher(
-    [[maybe_unused]] description::succeed_t) noexcept {
-  return
-      [](auto beg, [[maybe_unused]] auto end) -> std::optional<decltype(beg)> {
-        return beg;
-      };
-}
-
-template <class R, class I>
-constexpr auto parsers_interpreters_make_matcher(
-    description::recursive<R> descriptor,
-    I interpreter) noexcept {
-  return detail::parser_indirection_t<typename decltype(descriptor)::parser_t,
-                                      I>{descriptor.parser(), interpreter};
-}
-
-template <class S,
-          class I,
-          detail::instance_of<S, description::static_string> = 0>
-constexpr auto parsers_interpreters_make_matcher(S&& descriptor,
-                                                 I interpreter) noexcept {
-  return [descriptor = std::forward<S>(descriptor)](
-             auto beg, auto e) -> std::optional<decltype(beg)> {
-    using std::begin;
-    using std::end;
-    auto itb = begin(descriptor);
-    while (itb != end(descriptor)) {
-      if (beg == e || *beg != *itb) {
-        return {};
-      }
-      ++beg;
-      ++itb;
-    }
-    return {beg};
-  };
-}
-}  // namespace customization_points
-
-namespace interpreters {
-
+namespace parsers::interpreters {
 namespace detail {
-using ::parsers::customization_points::parsers_interpreters_make_matcher;
-
-template <class T, class = void>
-struct overloard_takes_single_argument : std::false_type {};
-template <class T>
-struct overloard_takes_single_argument<
-    T,
-    std::void_t<decltype(parsers_interpreters_make_matcher(std::declval<T>()))>>
-    : std::true_type {};
-template <class T>
-constexpr static inline bool overload_takes_single_argument_v =
-    overloard_takes_single_argument<T>::value;
-
-struct make_matcher_t {
- public:
-  template <class T>
-  [[nodiscard]] constexpr auto operator()(T&& descriptor) const noexcept {
-    if constexpr (overload_takes_single_argument_v<T>) {
-      return parsers_interpreters_make_matcher(std::forward<T>(descriptor));
-    }
-    else {
-      return parsers_interpreters_make_matcher(std::forward<T>(descriptor),
-                                               *this);
-    }
-  }
-};
+using namespace ::parsers::detail;
 }  // namespace detail
 
-constexpr static inline detail::make_matcher_t make_matcher{};
-}  // namespace interpreters
+struct matcher {
+  template <class I, class T = I>
+  using result_t = std::optional<std::decay_t<I>>;
 
-}  // namespace parsers
+  template <class T, class ItB, class ItE>
+  constexpr static inline result_t<ItB> success(
+      [[maybe_unused]] type_t<T>,
+      [[maybe_unused]] ItB before,
+      ItB after,
+      [[maybe_unused]] ItE end) noexcept {
+    return {after};
+  }
+
+  template <class T, class ItB, class ItE>
+  constexpr static inline result_t<ItB> failure(
+      [[maybe_unused]] type_t<T>,
+      [[maybe_unused]] ItB before,
+      [[maybe_unused]] ItB after,
+      [[maybe_unused]] ItE end) noexcept {
+    return {};
+  }
+
+  template <class... Ms, class ItE, class ItB>
+  constexpr static inline result_t<ItB> init(
+      [[maybe_unused]] type_t<description::many<Ms...>>,
+      ItB&& beg,
+      [[maybe_unused]] ItE&& end) noexcept {
+    return {std::forward<ItB>(beg)};
+  }
+
+  template <class T, class C, class Acc, class Add>
+  constexpr static inline auto combine(
+      [[maybe_unused]] type_t<description::many<T, C>>,
+      Acc& acc,
+      Add&& add) noexcept {
+    if (add.has_value()) {
+      acc = *std::forward<Add>(add);
+    }
+    return add;
+  }
+
+  template <class R>
+  constexpr static inline auto next_iterator(R&& r) noexcept {
+    return *std::forward<R>(r);
+  }
+
+  template <class R>
+  constexpr static inline bool has_value(R&& r) noexcept {
+    return std::forward<R>(r).has_value();
+  }
+
+  template <class R, class E, detail::instance_of<E, description::either> = 0>
+  constexpr static inline auto left([[maybe_unused]] type_t<E>,
+                                    R&& r) noexcept {
+    return std::forward<R>(r);
+  }
+
+  template <class R, class E, detail::instance_of<E, description::either> = 0>
+  constexpr static inline auto right([[maybe_unused]] type_t<E>,
+                                     R&& r) noexcept {
+    return std::forward<R>(r);
+  }
+
+  template <class L,
+            class R,
+            class B,
+            detail::instance_of<B, description::both> = 0>
+  constexpr static inline auto both([[maybe_unused]] type_t<B>,
+                                    [[maybe_unused]] L&& left,
+                                    R&& right) noexcept {
+    return *std::forward<R>(right);
+  }
+};
+
+}  // namespace parsers::interpreters
 
 #endif  // GUARD_PARSERS_INTERPRETERS_MATCHER_HPP
