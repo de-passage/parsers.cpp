@@ -8,7 +8,9 @@
 namespace parsers {
 struct empty {};
 template <class T>
-struct type_t {};
+struct type_t {
+  using type = T;
+};
 template <class T>
 constexpr static inline type_t<T> type{};
 

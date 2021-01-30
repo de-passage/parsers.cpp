@@ -104,4 +104,25 @@ TEST(ObjectParser, RecursiveShouldWork) {
   auto& lsls = *lsl.second;
   ASSERT_EQ(lsls.index(), 1);
   ASSERT_EQ(std::get<1>(lsls).index(), 0);
+
+  // testing for accidental copies
+  using namespace parsers::interpreters;
+
+  using indir = parsers::interpreters::detail::
+      unique_ptr<rec_t, parsers::interpreters::object_parser, const char*>;
+  using var = std::variant<std::pair<char,
+                                     parsers::interpreters::detail::unique_ptr<
+                                         rec_t,
+                                         parsers::interpreters::object_parser,
+                                         const char*>>,
+                           std::variant<char, parsers::empty>>;
+
+  static_assert(std::is_same_v<
+                parsers::interpreters::detail::
+                    recursive_pointer_type<rec_t, object_parser, const char*>,
+                var>);
+  static_assert(std::is_constructible_v<indir, var&&>);
+  static_assert(std::is_convertible_v<var&&, indir>);
+
+  static_assert(!std::is_copy_constructible_v<indir>);
 }

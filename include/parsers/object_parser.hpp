@@ -19,69 +19,21 @@ using namespace ::parsers::detail;
 template <class T, class P, class I>
 using recursive_pointer_type =
     typename P::template object_t<I, typename T::parser_t>;
-
 template <class T, class P, class I>
-struct unique_ptr {
-  using type = unique_ptr<T, P, I>;
-
-  template <class U>
-  unique_ptr(U&& u) : _ptr{new U(std::forward<U>(u))} {
+struct unique_ptr : std::unique_ptr<recursive_pointer_type<T, P, I>> {
+  template <
+      class U,
+      std::enable_if_t<!std::is_same_v<std::decay_t<U>, unique_ptr>, int> = 0>
+  unique_ptr(U&& u)
+      : std::unique_ptr<recursive_pointer_type<T, P, I>>{
+            std::make_unique<recursive_pointer_type<T, P, I>>(
+                std::forward<U>(u))} {
     static_assert(
         std::is_same_v<std::decay_t<U>, recursive_pointer_type<T, P, I>>);
   }
 
-  operator bool() const noexcept { return !!_ptr; }
-
-  template <class U>
-  friend bool operator==(const unique_ptr& ptr, U&& other) noexcept {
-    return _ptr == std::forward<U>(other);
-  }
-
-  template <class U>
-  friend bool operator==(U&& other, const unique_ptr& ptr) noexcept {
-    return _ptr == std::forward<U>(other);
-  }
-
-  friend bool operator==(const unique_ptr& left,
-                         const unique_ptr& right) noexcept {
-    return left._ptr == right._ptr;
-  }
-
-  template <class U>
-  friend bool operator!=(const unique_ptr& ptr, U&& other) noexcept {
-    return _ptr != std::forward<U>(other);
-  }
-
-  template <class U>
-  friend bool operator!=(U&& other, const unique_ptr& ptr) noexcept {
-    return _ptr != std::forward<U>(other);
-  }
-
-  friend bool operator!=(const unique_ptr& left,
-                         const unique_ptr& right) noexcept {
-    return left._ptr != right._ptr;
-  }
-
-  [[nodiscard]] auto* get() const {
-    return static_cast<recursive_pointer_type<T, P, I>*>(_ptr.get());
-  }
-
-  auto* operator->() const noexcept { return get(); }
-
-  [[nodiscard]] auto& operator*() const noexcept { return *get(); }
-
-  [[nodiscard]] auto* release() noexcept {
-    return static_cast<recursive_pointer_type<T, P, I>*>(_ptr.release());
-  }
-
- private:
-  struct deleter {
-    void operator()(void* ptr) {
-      delete static_cast<recursive_pointer_type<T, P, I>*>(ptr);
-    }
-  };
-  using pointer = std::unique_ptr<void, deleter>;
-  pointer _ptr;
+  unique_ptr(unique_ptr&& ptr) noexcept = default;
+  unique_ptr(const unique_ptr& ptr) noexcept = delete;
 };
 }  // namespace detail
 
@@ -90,7 +42,7 @@ struct object_parser {
   struct object {
     using type = typename std::conditional_t<
         description::is_recursive_v<T>,
-        detail::unique_ptr<T, object_parser, I>,
+        type_t<detail::unique_ptr<T, object_parser, I>>,
         description::object<std::decay_t<T>, std::decay_t<I>>>::type;
   };
 
@@ -179,15 +131,15 @@ struct object_parser {
     return dpsg::success(
         std::forward<R>(r).value().first,
         object_t<std::decay_t<decltype(r.value().first)>, E>{
-            std::in_place_index<0>, std::forward<R>(r).value().second});
+            std::in_place_index<0>, std::get<1>(std::forward<R>(r).value())});
   }
 
   template <class R, class E, detail::instance_of<E, description::either> = 0>
   constexpr static inline auto right(type_t<E>, R&& r) noexcept {
     return dpsg::success(
-        std::forward<R>(r).value().first,
+        std::get<0>(std::forward<R>(r).value()),
         object_t<std::decay_t<decltype(r.value().first)>, E>{
-            std::in_place_index<1>, std::forward<R>(r).value().second});
+            std::in_place_index<1>, std::get<1>(std::forward<R>(r).value())});
   }
 
   template <class L,
@@ -195,11 +147,10 @@ struct object_parser {
             class B,
             detail::instance_of<B, description::both> = 0>
   constexpr static inline auto both(type_t<B>, L&& left, R&& right) noexcept {
-    return dpsg::success(
-        std::forward<R>(right).value().first,
-        object_t<std::decay_t<decltype(right.value().first)>, B>{
-            std::forward<L>(left).value().second,
-            std::forward<R>(right).value().second});
+    return dpsg::success(std::get<0>(std::forward<R>(right).value()),
+                         object_t<decltype(right.value().first), B>{
+                             std::get<1>(std::forward<L>(left).value()),
+                             std::get<1>(std::forward<R>(right).value())});
   }
 };
 }  // namespace interpreters
