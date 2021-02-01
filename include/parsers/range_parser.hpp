@@ -99,6 +99,13 @@ struct range_parser {
         std::get<0>(std::forward<A>(a).value()),
         std::get<1>(detail::last_of(std::forward<Args>(args)...).value()));
   }
+
+  template <std::size_t S, class D, class I>
+  constexpr static inline auto alternative([[maybe_unused]] type_t<D>,
+                                           I&& value) noexcept {
+    return dpsg::success(std::get<0>(std::forward<I>(value).value()),
+                         std::get<1>(std::forward<I>(value).value()));
+  }
 };
 
 }  // namespace parsers::interpreters
