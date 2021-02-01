@@ -92,6 +92,11 @@ template <class I, class T, class... Args>
   return std::decay_t<I>::sequence(type<std::decay_t<T>>,
                                    std::forward<Args>(args)...);
 }
+template <class I, class T, std::size_t S, class... Args>
+[[nodiscard]] constexpr auto alternative(Args&&... args) noexcept {
+  return std::decay_t<I>::template alternative<S>(type<std::decay_t<T>>,
+                                                  std::forward<Args>(args)...);
+}
 }  // namespace detail
 
 template <class F,
@@ -265,6 +270,44 @@ constexpr auto parsers_interpreters_make_parser(
              auto beg, auto e) -> detail::result_t<I, decltype(beg), S> {
     return detail::call_sequence<0>(
         std::move(descriptor), std::move(interpreter), beg, beg, e);
+  };
+}
+
+namespace detail {
+
+template <std::size_t S, class D, class I, class ItB, class ItE>
+constexpr detail::result_t<I, ItB, D> call_alternative(
+    [[maybe_unused]] D&& descriptor,
+    I&& interpreter,
+    [[maybe_unused]] ItB beg,
+    [[maybe_unused]] ItE end) noexcept {
+  if constexpr (S < std::decay_t<D>::sequence_length) {
+    auto r = std::forward<I>(interpreter)(
+        std::forward<D>(descriptor).template parser<S>())(beg, end);
+    if (detail::has_value<I>(r)) {
+      return detail::alternative<I, D, S>(std::move(r));
+    }
+    return call_alternative<S + 1>(
+        std::forward<D>(descriptor), std::forward<I>(interpreter), beg, end);
+  }
+  else {
+    return detail::failure<I, D>(beg, beg, end);
+  }
+}
+
+}  // namespace detail
+
+template <class A,
+          class I,
+          detail::instance_of<A, description::alternative> = 0>
+constexpr auto parsers_interpreters_make_parser(
+    A&& descriptor,
+    [[maybe_unused]] I&& interpreter) noexcept {
+  return [descriptor = std::forward<A>(descriptor),
+          interpreter = std::forward<I>(interpreter)](
+             auto beg, auto e) -> detail::result_t<I, decltype(beg), A> {
+    return detail::call_alternative<0>(
+        std::move(descriptor), std::move(interpreter), beg, e);
   };
 }
 

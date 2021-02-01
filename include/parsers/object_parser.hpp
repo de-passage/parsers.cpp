@@ -142,6 +142,12 @@ struct object_parser {
     using t_ = typename object<std::decay_t<T>, std::decay_t<I>>::type;
     using type = std::tuple<t_<Args>...>;
   };
+  template <class I, class... Args>
+  struct object<description::alternative<Args...>, I> {
+    template <class T>
+    using t_ = typename object<std::decay_t<T>, std::decay_t<I>>::type;
+    using type = std::variant<t_<Args>...>;
+  };
 
   template <class I, class T>
   using object_t = typename object<std::decay_t<T>, std::decay_t<I>>::type;
@@ -243,6 +249,18 @@ struct object_parser {
         std::get<0>(detail::last_of(std::forward<Args>(args)...).value()),
         object_t<decltype(detail::last_of(args...).value().first), S>{
             std::get<1>(std::forward<Args>(args).value())...});
+  }
+
+  template <std::size_t S,
+            class D,
+            class T,
+            detail::instance_of<D, description::alternative> = 0>
+  constexpr static inline auto alternative([[maybe_unused]] type_t<D>,
+                                           T&& t) noexcept {
+    return dpsg::success(
+        std::get<0>(std::forward<T>(t).value()),
+        object_t<decltype(t.value().first), D>{
+            std::in_place_index<S>, std::get<1>(std::forward<T>(t).value())});
   }
 };
 }  // namespace interpreters

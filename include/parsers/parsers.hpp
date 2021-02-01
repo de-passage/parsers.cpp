@@ -100,7 +100,9 @@ constexpr auto parse(Descriptor&& desc, const T& input) noexcept {
   const auto parser =
       parsers::interpreters::make_parser<parsers::interpreters::object_parser>(
           std::forward<Descriptor>(desc));
-  return parser(begin(input), end(input));
+  return parser(begin(input), end(input)).map([](auto&& pair) {
+    return std::get<1>(std::forward<decltype(pair)>(pair));
+  });
 }
 
 }  // namespace parsers
