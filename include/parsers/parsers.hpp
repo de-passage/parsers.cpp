@@ -71,6 +71,14 @@ template <class Descriptor, class T>
                    end_of_match(std::forward<Descriptor>(descriptor), input)};
 }
 
+template <class Descriptor, class T>
+[[nodiscard]] constexpr std::ptrdiff_t match_length(Descriptor&& descriptor,
+                                                    const T& input) noexcept {
+  using std::begin;
+  return end_of_match(std::forward<Descriptor>(descriptor), input) -
+         begin(input);
+}
+
 }  // namespace parsers
 
 #endif  // GUARD_PARSERS_HPP

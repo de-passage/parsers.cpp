@@ -284,6 +284,88 @@ struct static_string {
 template <class T, std::size_t S>
 static_string(T (&)[S]) -> static_string<std::decay_t<T>>;
 
+namespace detail {
+template <class T>
+struct requires_initialization : std::true_type {};
+template <class T>
+struct requires_initialization<empty_container<T>> : std::false_type {};
+template <class T>
+constexpr static inline bool requires_initialization_v =
+    requires_initialization<T>::value;
+
+template <std::size_t S, class T, class... Args>
+struct at {
+  using type = typename at<S - 1, Args...>::type;
+};
+template <class T, class... Args>
+struct at<0, T, Args...> {
+  using type = T;
+};
+template <std::size_t S, class... Args>
+using at_t = typename at<S, Args...>::type;
+
+template <std::size_t S, class T>
+struct indexed_container
+    : private std::conditional_t<requires_initialization_v<T>,
+                                 container<T>,
+                                 empty_container<T>> {
+  using base = std::conditional_t<requires_initialization_v<T>,
+                                  container<T>,
+                                  empty_container<T>>;
+
+  constexpr indexed_container() noexcept = default;
+
+  template <
+      class U,
+      std::enable_if_t<
+          std::conjunction_v<
+              std::is_constructible<T, U>,
+              std::negation<std::is_same<std::decay_t<U>, indexed_container>>>,
+          int> = 0>
+  constexpr explicit indexed_container(U&& u) : base{std::forward<U>(u)} {}
+
+  template <std::size_t R, std::enable_if_t<S == R, int> = 0>
+  constexpr auto parser() const noexcept {
+    return base::parser();
+  }
+};
+
+template <class T, class... Ss>
+struct indexed_sequence;
+template <std::size_t... Ss, class... Ts>
+struct indexed_sequence<std::index_sequence<Ss...>, Ts...>
+    : indexed_container<Ss, Ts>... {
+  constexpr explicit indexed_sequence() = default;
+  template <class... Us>
+  constexpr explicit indexed_sequence(Us&&... us)
+      : indexed_container<Ss, Ts>{std::forward<Us>(us)}... {}
+
+  template <std::size_t S>
+  constexpr auto parser() const noexcept {
+    return indexed_container<S, at_t<S, Ts...>>::template parser<S>();
+  }
+};
+
+}  // namespace detail
+
+template <class... Ss>
+struct sequence
+    : detail::indexed_sequence<std::index_sequence_for<Ss...>, Ss...> {
+  using base = detail::indexed_sequence<std::index_sequence_for<Ss...>, Ss...>;
+
+  constexpr static inline std::size_t sequence_length = sizeof...(Ss);
+
+  static_assert(sequence_length > 0, "Empty sequence not allowed");
+  constexpr sequence() noexcept = default;
+  template <
+      class... Ts,
+      std::enable_if_t<sequence_length == sizeof...(Ts) &&
+                           std::conjunction_v<std::is_convertible<Ts, Ss>...>,
+                       int> = 0>
+  constexpr explicit sequence(Ts&&... ts) noexcept
+      : base{std::forward<Ts>(ts)...} {}
+};
+
 }  // namespace parsers::description
 
 #endif  // GUARD_PARSERS_DESCRIPTIONS_HPP

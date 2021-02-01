@@ -84,6 +84,20 @@ struct matcher {
                                     R&& right) noexcept {
     return *std::forward<R>(right);
   }
+
+  template <class S, class A, class B, class... Args>
+  constexpr static inline auto sequence(type_t<S> s,
+                                        [[maybe_unused]] A&& a,
+                                        B&& b,
+                                        Args&&... args) noexcept {
+    return sequence(s, std::forward<B>(b), std::forward<Args>(args)...);
+  }
+
+  template <class S, class A>
+  constexpr static inline auto sequence([[maybe_unused]] type_t<S> s,
+                                        A&& a) noexcept {
+    return std::forward<A>(a);
+  }
 };
 
 }  // namespace parsers::interpreters

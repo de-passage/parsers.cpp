@@ -86,6 +86,12 @@ template <class I, class T, class L, class R>
   return std::decay_t<I>::both(
       type<std::decay_t<T>>, std::forward<L>(left), std::forward<R>(right));
 }
+
+template <class I, class T, class... Args>
+[[nodiscard]] constexpr auto sequence(Args&&... args) noexcept {
+  return std::decay_t<I>::sequence(type<std::decay_t<T>>,
+                                   std::forward<Args>(args)...);
+}
 }  // namespace detail
 
 template <class F,
@@ -218,6 +224,49 @@ constexpr auto parsers_interpreters_make_parser(
     return detail::success<I, S>(b, beg, e);
   };
 }
+
+namespace detail {
+
+template <std::size_t S, class D, class I, class ItB, class ItE, class... Args>
+constexpr auto call_sequence([[maybe_unused]] D&& descriptor,
+                             I&& interpreter,
+                             [[maybe_unused]] ItB beg,
+                             [[maybe_unused]] ItB cur,
+                             [[maybe_unused]] ItE end,
+                             Args&&... args) noexcept {
+  if constexpr (S < std::decay_t<D>::sequence_length) {
+    auto r = std::forward<I>(interpreter)(
+        std::forward<D>(descriptor).template parser<S>())(cur, end);
+    if (detail::has_value<I>(r)) {
+      return call_sequence<S + 1>(std::forward<D>(descriptor),
+                                  std::forward<I>(interpreter),
+                                  beg,
+                                  detail::next_iterator<I>(r),
+                                  end,
+                                  std::forward<Args>(args)...,
+                                  std::move(r));
+    }
+    return detail::failure<I, D>(beg, cur, end);
+  }
+  else {
+    return detail::sequence<I, D>(std::forward<Args>(args)...);
+  }
+}
+
+}  // namespace detail
+
+template <class S, class I, detail::instance_of<S, description::sequence> = 0>
+constexpr auto parsers_interpreters_make_parser(
+    S&& descriptor,
+    [[maybe_unused]] I&& interpreter) noexcept {
+  return [descriptor = std::forward<S>(descriptor),
+          interpreter = std::forward<I>(interpreter)](
+             auto beg, auto e) -> detail::result_t<I, decltype(beg), S> {
+    return detail::call_sequence<0>(
+        std::move(descriptor), std::move(interpreter), beg, beg, e);
+  };
+}
+
 }  // namespace parsers::customization_points
 
 #endif  // PARSERS_CUSTOMIZATION_POINTS_HPP
