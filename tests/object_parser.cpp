@@ -12,7 +12,8 @@ template <class D, class T>
   const auto parser =
       parsers::interpreters::make_parser<parsers::interpreters::object_parser>(
           descriptor);
-  using namespace std;
+  using std::begin;
+  using std::end;
   auto b = begin(t);
   auto e = end(t);
   return parser(b, e);

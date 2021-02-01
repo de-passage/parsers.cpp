@@ -130,9 +130,16 @@ struct container {
   template <
       class U,
       std::enable_if_t<std::is_array_v<std::remove_reference_t<U>>, int> = 0>
-  constexpr explicit container(U&& t) noexcept {
-    detail::copy(std::begin(t), std::end(t), std::begin(_parser));
+  constexpr explicit container(U&& t) noexcept
+  // clang-format off
+#if defined(_MSC_VER)
+      : _parser{}
+#endif
+  { 
+    detail::copy(std::begin(t), std::end(t), std::begin(_parser)); 
   }
+  // clang-format on
+
   constexpr container(container&&) noexcept = default;
   constexpr container(const container&) noexcept = default;
 
@@ -240,7 +247,7 @@ struct end_t {};
 namespace detail {
 template <class T>
 struct construct_parser_t {
-  [[nodiscard]] constexpr auto parser() noexcept {
+  [[nodiscard]] constexpr auto parser() const noexcept {
     return typename T::parser_t{};
   }
 };
