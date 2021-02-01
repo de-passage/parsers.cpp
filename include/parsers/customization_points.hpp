@@ -228,12 +228,13 @@ constexpr auto parsers_interpreters_make_parser(
 namespace detail {
 
 template <std::size_t S, class D, class I, class ItB, class ItE, class... Args>
-constexpr auto call_sequence([[maybe_unused]] D&& descriptor,
-                             I&& interpreter,
-                             [[maybe_unused]] ItB beg,
-                             [[maybe_unused]] ItB cur,
-                             [[maybe_unused]] ItE end,
-                             Args&&... args) noexcept {
+constexpr detail::result_t<I, ItB, D> call_sequence(
+    [[maybe_unused]] D&& descriptor,
+    I&& interpreter,
+    [[maybe_unused]] ItB beg,
+    [[maybe_unused]] ItB cur,
+    [[maybe_unused]] ItE end,
+    Args&&... args) noexcept {
   if constexpr (S < std::decay_t<D>::sequence_length) {
     auto r = std::forward<I>(interpreter)(
         std::forward<D>(descriptor).template parser<S>())(cur, end);

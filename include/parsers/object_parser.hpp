@@ -36,7 +36,9 @@ struct unique_ptr : std::unique_ptr<recursive_pointer_type<T, P, I>> {
   unique_ptr(const unique_ptr& ptr) noexcept = delete;
 };
 
-template <class I, class S, instance_of<S, description::satisfy>>
+template <class I,
+          class S,
+          std::enable_if_t<description::is_satisfiable_predicate_v<S>, int> = 0>
 constexpr static inline auto build([[maybe_unused]] type_t<S>,
                                    I&& b,
                                    [[maybe_unused]] I&& e) noexcept {
@@ -134,6 +136,12 @@ struct object_parser {
     using t_ = typename object<std::decay_t<T>, std::decay_t<I>>::type;
     using type = std::pair<t_<A>, t_<B>>;
   };
+  template <class I, class... Args>
+  struct object<description::sequence<Args...>, I> {
+    template <class T>
+    using t_ = typename object<std::decay_t<T>, std::decay_t<I>>::type;
+    using type = std::tuple<t_<Args>...>;
+  };
 
   template <class I, class T>
   using object_t = typename object<std::decay_t<T>, std::decay_t<I>>::type;
@@ -224,6 +232,17 @@ struct object_parser {
                          object_t<decltype(right.value().first), B>{
                              std::get<1>(std::forward<L>(left).value()),
                              std::get<1>(std::forward<R>(right).value())});
+  }
+
+  template <class S,
+            class... Args,
+            detail::instance_of<S, description::sequence> = 0>
+  constexpr static inline auto sequence([[maybe_unused]] type_t<S>,
+                                        Args&&... args) noexcept {
+    return dpsg::success(
+        std::get<0>(detail::last_of(std::forward<Args>(args)...).value()),
+        object_t<decltype(detail::last_of(args...).value().first), S>{
+            std::get<1>(std::forward<Args>(args).value())...});
   }
 };
 }  // namespace interpreters

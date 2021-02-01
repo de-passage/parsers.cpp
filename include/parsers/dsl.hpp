@@ -28,6 +28,18 @@ constexpr static inline description::end_t end{};
 constexpr static inline description::any_t any{};
 constexpr static inline description::succeed_t succeed{};
 
+namespace detail {
+struct is_zero : description::satisfy<is_zero> {
+  template <class C>
+  [[nodiscard]] constexpr bool operator()(C c) const noexcept {
+    return c == static_cast<C>(0);
+  }
+};
+}  // namespace detail
+
+using eos_t = description::either<description::end_t, detail::is_zero>;
+constexpr static inline eos_t eos{};
+
 template <class T>
 struct fail_t : description::fail_t<fail_t<T>> {
   template <class U, std::enable_if_t<!std::is_same_v<std::decay_t<U>, fail_t>>>

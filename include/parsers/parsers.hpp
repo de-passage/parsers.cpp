@@ -94,6 +94,15 @@ constexpr auto parse_range(Descriptor&& desc, const T& input) noexcept {
   return range_parser(begin(input), end(input));
 }
 
+template <class Descriptor, class T>
+constexpr auto parse(Descriptor&& desc, const T& input) noexcept {
+  using std::begin, std::end;
+  const auto parser =
+      parsers::interpreters::make_parser<parsers::interpreters::object_parser>(
+          std::forward<Descriptor>(desc));
+  return parser(begin(input), end(input));
+}
+
 }  // namespace parsers
 
 #endif  // GUARD_PARSERS_HPP

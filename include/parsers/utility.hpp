@@ -27,25 +27,25 @@ template <class T>
 struct reference_wrapper {
   constexpr explicit reference_wrapper(T& ref) : _ptr{&ref} {}
 
-  constexpr const T& get() const& { return *_ptr; };
-  constexpr T& get() & { return *_ptr; };
-  constexpr const T&& get() const&& {
+  [[nodiscard]] constexpr const T& get() const& { return *_ptr; };
+  [[nodiscard]] constexpr T& get() & { return *_ptr; };
+  [[nodiscard]] constexpr const T&& get() const&& {
     return *static_cast<const reference_wrapper&&>(*this)._ptr;
   };
-  constexpr T&& get() && {
+  [[nodiscard]] constexpr T&& get() && {
     return *static_cast<reference_wrapper&&>(*this)._ptr;
   };
 
-  constexpr T* operator->() noexcept { return _ptr; }
-  constexpr const T* operator->() const noexcept { return _ptr; }
+  [[nodiscard]] constexpr T* operator->() noexcept { return _ptr; }
+  [[nodiscard]] constexpr const T* operator->() const noexcept { return _ptr; }
 
-  constexpr operator T&() & noexcept { return *_ptr; }
-  constexpr operator const T&() const& noexcept { return *_ptr; }
+  [[nodiscard]] constexpr operator T&() & noexcept { return *_ptr; }
+  [[nodiscard]] constexpr operator const T&() const& noexcept { return *_ptr; }
 
-  constexpr operator T&&() && noexcept {
+  [[nodiscard]] constexpr operator T&&() && noexcept {
     return *static_cast<reference_wrapper&&>(*this)._ptr;
   }
-  constexpr operator const T&&() const&& noexcept {
+  [[nodiscard]] constexpr operator const T&&() const&& noexcept {
     return *static_cast<const reference_wrapper&&>(*this)._ptr;
   }
 
@@ -54,9 +54,22 @@ struct reference_wrapper {
 };
 
 template <class T>
-constexpr reference_wrapper<T> ref(T& t) noexcept {
+[[nodiscard]] constexpr reference_wrapper<T> ref(T& t) noexcept {
   return reference_wrapper<T>{t};
 }
+
+template <class A>
+[[nodiscard]] constexpr decltype(auto) last_of(A&& a) noexcept {
+  return std::forward<A>(a);
+}
+
+template <class A, class B, class... Args>
+[[nodiscard]] constexpr decltype(auto) last_of([[maybe_unused]] A&& a,
+                                               B&& b,
+                                               Args&&... args) noexcept {
+  return last_of(std::forward<B>(b), std::forward<Args>(args)...);
+}
+
 }  // namespace detail
 }  // namespace parsers
 

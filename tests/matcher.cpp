@@ -10,9 +10,6 @@ using namespace parsers::dsl;
 using namespace std::literals::string_literals;
 using namespace parsers::description;
 
-using eos_t = either<character<'\0'>, end_t>;
-constexpr auto eos = eos_t{};
-
 TEST(Matcher, ShouldBehaveWithTrivialDescriptors) {
   static_assert(match(any, "a"));
   static_assert(match(any, "b"));
