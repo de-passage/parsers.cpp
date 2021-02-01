@@ -67,3 +67,23 @@ TEST(Sequence, CanBeParsedForObjects) {
   constexpr auto p3 = parse(s, "HelloWorld!");
   static_assert(p3.is_error());
 }
+
+template <class P>
+constexpr auto string(const P& p) noexcept {
+  return parsers::description::static_string{p.first, p.second};
+}
+
+TEST(Sequence, CanParseRange) {
+  using namespace parsers::description;
+  using parsers::parse_range;
+  constexpr auto s = sequence{
+      either{character{'s'}, character{'S'}}, "tring"_s, many{character{'.'}}};
+  constexpr auto p1 = parse_range(s, "string");
+  static_assert(p1.has_value());
+  constexpr auto r1 = string(p1.value());
+  static_assert(streq(r1, "string"));
+  constexpr auto p2 = parse_range(s, "String....");
+  static_assert(p2.has_value());
+  constexpr auto r2 = string(p2.value());
+  static_assert(streq(r2, "String...."));
+}

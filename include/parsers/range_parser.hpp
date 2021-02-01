@@ -47,7 +47,7 @@ struct range_parser {
       Acc& acc,
       Add&& add) noexcept {
     if (add.has_value()) {
-      acc.value().second = std::forward<Add>(add).value().second;
+      acc.value().second = std::get<1>(std::forward<Add>(add).value());
     }
     return add;
   }
@@ -87,8 +87,17 @@ struct range_parser {
             class B,
             detail::instance_of<B, description::both> = 0>
   constexpr static inline auto both(type_t<B>, L&& left, R&& right) noexcept {
-    return dpsg::success(std::forward<L>(left).value().first,
-                         std::forward<R>(right).value().second);
+    return dpsg::success(std::get<0>(std::forward<L>(left).value()),
+                         std::get<1>(std::forward<R>(right).value()));
+  }
+
+  template <class S, class A, class... Args>
+  constexpr static inline auto sequence([[maybe_unused]] type_t<S> s,
+                                        A&& a,
+                                        Args&&... args) noexcept {
+    return dpsg::success(
+        std::get<0>(std::forward<A>(a).value()),
+        std::get<1>(detail::last_of(std::forward<Args>(args)...).value()));
   }
 };
 
