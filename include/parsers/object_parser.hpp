@@ -35,6 +35,77 @@ struct unique_ptr : std::unique_ptr<recursive_pointer_type<T, P, I>> {
   unique_ptr(unique_ptr&& ptr) noexcept = default;
   unique_ptr(const unique_ptr& ptr) noexcept = delete;
 };
+
+template <class I, class S, instance_of<S, description::satisfy>>
+constexpr static inline auto build([[maybe_unused]] type_t<S>,
+                                   I&& b,
+                                   [[maybe_unused]] I&& e) noexcept {
+  return *std::forward<I>(b);
+}
+
+template <auto V,
+          class C,
+          class I,
+          std::enable_if_t<!std::is_same_v<decltype(V), nullptr_t>, int> = 0>
+constexpr static inline typename description::character<V, C>::value_type build(
+    [[maybe_unused]] type_t<description::character<V, C>>,
+    [[maybe_unused]] I&& b,
+    [[maybe_unused]] I&& e) noexcept {
+  return description::character<V, C>::value;
+}
+
+template <class C, class I>
+constexpr static inline typename description::character<nullptr, C>::value_type
+build([[maybe_unused]] type_t<description::character<nullptr, C>>,
+      [[maybe_unused]] I&& b,
+      [[maybe_unused]] I&& e) noexcept {
+  return *std::forward<I>(b);
+}
+
+template <class I>
+constexpr static inline
+    typename std::iterator_traits<std::decay_t<I>>::value_type
+    build([[maybe_unused]] type_t<description::any_t>,
+          I&& b,
+          [[maybe_unused]] I&& e) noexcept {
+  return *std::forward<I>(b);
+}
+
+template <class I>
+constexpr static inline empty build(
+    [[maybe_unused]] type_t<description::succeed_t>,
+    [[maybe_unused]] I&& b,
+    [[maybe_unused]] I&& e) noexcept {
+  return {};
+}
+
+template <class S, class I, instance_of<S, description::static_string> = 0>
+constexpr static inline S build([[maybe_unused]] type_t<S>,
+                                [[maybe_unused]] I&& b,
+                                [[maybe_unused]] I&& e) noexcept {
+  return S{std::forward<I>(b), std::forward<I>(e)};
+}
+
+template <class I>
+constexpr static inline empty build([[maybe_unused]] type_t<description::end_t>,
+                                    [[maybe_unused]] I&& b,
+                                    [[maybe_unused]] I&& e) noexcept {
+  return {};
+}
+
+template <class F,
+          class I,
+          std::enable_if_t<description::is_failure_v<F>, int> = 0>
+constexpr static inline empty build([[maybe_unused]] type_t<F>,
+                                    [[maybe_unused]] I&&,
+                                    [[maybe_unused]] I&&) noexcept;
+
+template <class T, class I>
+struct object {
+  using type = decltype(build(type<T>, std::declval<I>(), std::declval<I>()));
+};
+template <class T, class I>
+using object_t = typename object<T, I>::type;
 }  // namespace detail
 
 struct object_parser {
@@ -43,7 +114,7 @@ struct object_parser {
     using type = typename std::conditional_t<
         description::is_recursive_v<T>,
         type_t<detail::unique_ptr<T, object_parser, I>>,
-        description::object<std::decay_t<T>, std::decay_t<I>>>::type;
+        detail::object<std::decay_t<T>, std::decay_t<I>>>::type;
   };
 
   template <class T, class C, class I>
@@ -71,11 +142,13 @@ struct object_parser {
   using result_t = dpsg::result<std::pair<I, object_t<I, T>>, I>;
 
   template <class T, class ItB, class ItE>
-  constexpr static inline result_t<ItB, T> success([[maybe_unused]] type_t<T>,
-                                                   ItB before,
-                                                   ItB after,
-                                                   [[maybe_unused]] ItE end) {
-    return dpsg::success(after, T::build(before, after));
+  constexpr static inline result_t<ItB, T> success(
+      [[maybe_unused]] type_t<T> tag,
+      ItB before,
+      ItB after,
+      [[maybe_unused]] ItE end) {
+    using ::parsers::interpreters::detail::build;
+    return dpsg::success(after, build(tag, before, after));
   }
 
   template <class T, class ItB, class ItE>

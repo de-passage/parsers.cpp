@@ -30,11 +30,6 @@ struct satisfy {
       [[maybe_unused]] const satisfy& unused) noexcept {
     return {};
   }
-
-  template <class I>
-  constexpr static inline auto build(I&& b, [[maybe_unused]] I&& e) noexcept {
-    return *std::forward<I>(b);
-  }
 };
 constexpr std::false_type is_satisfiable_predicate_f(...) noexcept {
   return {};
@@ -55,12 +50,6 @@ struct character : satisfy<character<Char, CharT>> {
   template <class C>
   [[nodiscard]] constexpr bool operator()(C&& c) const noexcept {
     return c == value;
-  }
-
-  template <class I>
-  constexpr static inline value_type build([[maybe_unused]] I&& b,
-                                           [[maybe_unused]] I&& e) noexcept {
-    return value;
   }
 };
 
@@ -97,19 +86,11 @@ character(T&&) -> character<nullptr, detail::dynamic<std::decay_t<T>>>;
 
 struct any_t : satisfy<any_t> {
   [[nodiscard]] constexpr bool operator()(...) const noexcept { return true; }
-
-  template <class I>
-  constexpr static inline
-      typename std::iterator_traits<std::decay_t<I>>::value_type
-      build(I&& b, [[maybe_unused]] I&& e) noexcept {
-    return *std::forward<I>(b);
-  }
 };
 
 template <class T>
 struct fail_t {
   friend constexpr std::true_type is_failure_f(fail_t) noexcept;
-  constexpr static inline empty build(...) noexcept;
 };
 constexpr std::false_type is_failure_f(...) noexcept;
 template <class T>
@@ -117,13 +98,7 @@ using is_failure = decltype(is_failure_f(std::declval<T>()));
 template <class T>
 constexpr static inline bool is_failure_v = is_failure<T>::value;
 
-struct succeed_t {
-  template <class I>
-  constexpr static inline empty build([[maybe_unused]] I&& b,
-                                      [[maybe_unused]] I&& e) noexcept {
-    return {};
-  }
-};
+struct succeed_t {};
 
 template <class A, class B>
 struct empty_pair {
@@ -158,6 +133,8 @@ struct container {
   constexpr explicit container(U&& t) noexcept {
     detail::copy(std::begin(t), std::end(t), std::begin(_parser));
   }
+  constexpr container(container&&) noexcept = default;
+  constexpr container(const container&) noexcept = default;
 
   [[nodiscard]] constexpr parser_t& parser() & noexcept { return _parser; }
   [[nodiscard]] constexpr const parser_t& parser() const& noexcept {
@@ -258,13 +235,7 @@ struct many : C {
 template <class P, class P1 = detail::remove_cvref_t<P>>
 many(P&&) -> many<P1, container<P1>>;
 
-struct end_t {
-  template <class I>
-  constexpr static inline empty build([[maybe_unused]] I&& b,
-                                      [[maybe_unused]] I&& e) noexcept {
-    return {};
-  }
-};
+struct end_t {};
 
 namespace detail {
 template <class T>
@@ -306,25 +277,12 @@ struct static_string {
   constexpr auto end() const noexcept { return _end; }
   constexpr auto cend() const noexcept { return _end; }
 
-  template <class I>
-  constexpr static inline static_string build([[maybe_unused]] I&& b,
-                                              [[maybe_unused]] I&& e) noexcept {
-    return static_string{std::forward<I>(b), std::forward<I>(e)};
-  }
-
  private:
   pointer_t _begin;
   pointer_t _end;
 };
 template <class T, std::size_t S>
 static_string(T (&)[S]) -> static_string<std::decay_t<T>>;
-
-template <class T, class I>
-struct object {
-  using type = decltype(T::build(std::declval<I>(), std::declval<I>()));
-};
-template <class T, class I>
-using object_t = typename object<T, I>::type;
 
 }  // namespace parsers::description
 
