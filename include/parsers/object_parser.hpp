@@ -8,6 +8,7 @@
 #include <memory>
 #include <optional>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace parsers {
@@ -106,8 +107,20 @@ template <class T, class I>
 struct object {
   using type = decltype(build(type<T>, std::declval<I>(), std::declval<I>()));
 };
+
 template <class T, class I>
 using object_t = typename object<T, I>::type;
+
+template <class T, class B, class A, class = void>
+struct buildable : std::false_type {};
+template <class T, class B, class A>
+struct buildable<
+    T,
+    B,
+    A,
+    std::void_t<decltype(
+        build(std::declval<T>(), std::declval<B>(), std::declval<A>()))>>
+    : std::true_type {};
 }  // namespace detail
 
 struct object_parser {
@@ -162,7 +175,13 @@ struct object_parser {
       ItB after,
       [[maybe_unused]] ItE end) {
     using ::parsers::interpreters::detail::build;
-    return dpsg::success(after, build(tag, before, after));
+    if constexpr (detail::buildable<type_t<T>, ItB, ItB>::value) {
+      return dpsg::success(after, build(tag, before, after));
+    }
+    else {
+      return dpsg::success(
+          std::piecewise_construct, std::tuple{after}, std::tuple{});
+    }
   }
 
   template <class T, class ItB, class ItE>
@@ -171,14 +190,6 @@ struct object_parser {
                                                    ItB after,
                                                    [[maybe_unused]] ItE end) {
     return dpsg::failure(after);
-  }
-
-  template <class... Ms, class ItB, class ItE>
-  constexpr static inline result_t<std::decay_t<ItB>, description::many<Ms...>>
-  init([[maybe_unused]] type_t<description::many<Ms...>>,
-       [[maybe_unused]] ItB&&,
-       [[maybe_unused]] ItE&&) noexcept {
-    return dpsg::success();
   }
 
   template <class T, class C, class Acc, class Add>
@@ -213,36 +224,7 @@ struct object_parser {
     return std::forward<R>(r).get().has_value();
   }
 
-  template <class R, class E, detail::instance_of<E, description::either> = 0>
-  constexpr static inline auto left(type_t<E>, R&& r) noexcept {
-    return dpsg::success(
-        std::forward<R>(r).value().first,
-        object_t<std::decay_t<decltype(r.value().first)>, E>{
-            std::in_place_index<0>, std::get<1>(std::forward<R>(r).value())});
-  }
-
-  template <class R, class E, detail::instance_of<E, description::either> = 0>
-  constexpr static inline auto right(type_t<E>, R&& r) noexcept {
-    return dpsg::success(
-        std::get<0>(std::forward<R>(r).value()),
-        object_t<std::decay_t<decltype(r.value().first)>, E>{
-            std::in_place_index<1>, std::get<1>(std::forward<R>(r).value())});
-  }
-
-  template <class L,
-            class R,
-            class B,
-            detail::instance_of<B, description::both> = 0>
-  constexpr static inline auto both(type_t<B>, L&& left, R&& right) noexcept {
-    return dpsg::success(std::get<0>(std::forward<R>(right).value()),
-                         object_t<decltype(right.value().first), B>{
-                             std::get<1>(std::forward<L>(left).value()),
-                             std::get<1>(std::forward<R>(right).value())});
-  }
-
-  template <class S,
-            class... Args,
-            detail::instance_of<S, description::sequence> = 0>
+  template <class S, class... Args>
   constexpr static inline auto sequence([[maybe_unused]] type_t<S>,
                                         Args&&... args) noexcept {
     return dpsg::success(
@@ -251,10 +233,7 @@ struct object_parser {
             std::get<1>(std::forward<Args>(args).value())...});
   }
 
-  template <std::size_t S,
-            class D,
-            class T,
-            detail::instance_of<D, description::alternative> = 0>
+  template <std::size_t S, class D, class T>
   constexpr static inline auto alternative([[maybe_unused]] type_t<D>,
                                            T&& t) noexcept {
     return dpsg::success(

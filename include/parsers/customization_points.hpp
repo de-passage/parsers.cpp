@@ -142,7 +142,7 @@ constexpr auto parsers_interpreters_make_parser(M&& descriptor,
                                                 I interpreter) noexcept {
   return [parser = interpreter(descriptor.parser())](
              auto beg, auto end) -> detail::result_t<I, decltype(beg), M> {
-    auto acc = detail::init<I, M>(beg, beg);
+    auto acc = detail::success<I, M>(beg, beg, end);
     while (beg != end) {
       auto r = detail::combine<I, M>(acc, parser(beg, end));
       if (!detail::has_value<I>(r)) {
@@ -163,7 +163,7 @@ constexpr auto parsers_interpreters_make_parser(B&& descriptor,
     if (auto r1 = left(beg, end); detail::has_value<I>(r1)) {
       if (auto r2 = right(detail::next_iterator<I>(r1), end);
           detail::has_value<I>(r2)) {
-        return detail::both<I, B>(std::move(r1), std::move(r2));
+        return detail::sequence<I, B>(std::move(r1), std::move(r2));
       }
       return detail::failure<I, B>(beg, detail::next_iterator<I>(r1), end);
     }
@@ -178,11 +178,11 @@ constexpr auto parsers_interpreters_make_parser(E&& descriptor,
           right = interpreter(descriptor.right())](
              auto beg, auto end) -> detail::result_t<I, decltype(beg), E> {
     if (auto l = left(beg, end); detail::has_value<I>(l)) {
-      return detail::left<I, E>(std::move(l));
+      return detail::alternative<I, E, 0>(std::move(l));
     }
     auto r = right(beg, end);
     if (detail::has_value<I>(r)) {
-      return detail::right<I, E>(std::move(r));
+      return detail::alternative<I, E, 1>(std::move(r));
     }
     return detail::failure<I, E>(beg, beg, end);
   };

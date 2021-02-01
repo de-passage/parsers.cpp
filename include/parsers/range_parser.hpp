@@ -33,14 +33,6 @@ struct range_parser {
     return dpsg::failure(after);
   }
 
-  template <class... Ms, class ItE, class ItB>
-  constexpr static inline result_t<ItB> init(
-      [[maybe_unused]] type_t<description::many<Ms...>>,
-      ItB&& beg,
-      ItE&& end) noexcept {
-    return dpsg::success(std::forward<ItB>(beg), std::forward<ItE>(end));
-  }
-
   template <class T, class C, class Acc, class Add>
   constexpr static inline auto combine(
       [[maybe_unused]] type_t<description::many<T, C>>,
@@ -72,25 +64,6 @@ struct range_parser {
     return std::forward<R>(r)->has_value();
   }
 
-  template <class R, class E, detail::instance_of<E, description::either> = 0>
-  constexpr static inline auto left(type_t<E>, R&& r) noexcept {
-    return std::forward<R>(r);
-  }
-
-  template <class R, class E, detail::instance_of<E, description::either> = 0>
-  constexpr static inline auto right(type_t<E>, R&& r) noexcept {
-    return std::forward<R>(r);
-  }
-
-  template <class L,
-            class R,
-            class B,
-            detail::instance_of<B, description::both> = 0>
-  constexpr static inline auto both(type_t<B>, L&& left, R&& right) noexcept {
-    return dpsg::success(std::get<0>(std::forward<L>(left).value()),
-                         std::get<1>(std::forward<R>(right).value()));
-  }
-
   template <class S, class A, class... Args>
   constexpr static inline auto sequence([[maybe_unused]] type_t<S> s,
                                         A&& a,
@@ -103,8 +76,7 @@ struct range_parser {
   template <std::size_t S, class D, class I>
   constexpr static inline auto alternative([[maybe_unused]] type_t<D>,
                                            I&& value) noexcept {
-    return dpsg::success(std::get<0>(std::forward<I>(value).value()),
-                         std::get<1>(std::forward<I>(value).value()));
+    return value;
   }
 };
 

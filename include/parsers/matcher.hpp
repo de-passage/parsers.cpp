@@ -34,14 +34,6 @@ struct matcher {
     return {};
   }
 
-  template <class... Ms, class ItE, class ItB>
-  constexpr static inline result_t<ItB> init(
-      [[maybe_unused]] type_t<description::many<Ms...>>,
-      ItB&& beg,
-      [[maybe_unused]] ItE&& end) noexcept {
-    return {std::forward<ItB>(beg)};
-  }
-
   template <class T, class C, class Acc, class Add>
   constexpr static inline auto combine(
       [[maybe_unused]] type_t<description::many<T, C>>,
@@ -61,28 +53,6 @@ struct matcher {
   template <class R>
   constexpr static inline bool has_value(R&& r) noexcept {
     return std::forward<R>(r).has_value();
-  }
-
-  template <class R, class E, detail::instance_of<E, description::either> = 0>
-  constexpr static inline auto left([[maybe_unused]] type_t<E>,
-                                    R&& r) noexcept {
-    return std::forward<R>(r);
-  }
-
-  template <class R, class E, detail::instance_of<E, description::either> = 0>
-  constexpr static inline auto right([[maybe_unused]] type_t<E>,
-                                     R&& r) noexcept {
-    return std::forward<R>(r);
-  }
-
-  template <class L,
-            class R,
-            class B,
-            detail::instance_of<B, description::both> = 0>
-  constexpr static inline auto both([[maybe_unused]] type_t<B>,
-                                    [[maybe_unused]] L&& left,
-                                    R&& right) noexcept {
-    return *std::forward<R>(right);
   }
 
   template <class S, class... Args>
