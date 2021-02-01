@@ -5,19 +5,13 @@
 #include <string>
 
 using parsers::match;
+using parsers::match_length;
 using namespace parsers::dsl;
 using namespace std::literals::string_literals;
 using namespace parsers::description;
 
 using eos_t = either<character<'\0'>, end_t>;
 constexpr auto eos = eos_t{};
-
-template <class D, class T>
-[[nodiscard]] constexpr std::ptrdiff_t match_length(D desc,
-                                                    const T& in) noexcept {
-  const auto r = parsers::match_span(desc, in);
-  return r.second - r.first;
-}
 
 TEST(Matcher, ShouldBehaveWithTrivialDescriptors) {
   static_assert(match(any, "a"));

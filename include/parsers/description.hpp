@@ -328,6 +328,8 @@ struct indexed_container
   constexpr auto parser() const noexcept {
     return base::parser();
   }
+
+  using parser_t = typename base::parser_t;
 };
 
 template <class T, class... Ss>
@@ -344,6 +346,9 @@ struct indexed_sequence<std::index_sequence<Ss...>, Ts...>
   constexpr auto parser() const noexcept {
     return indexed_container<S, at_t<S, Ts...>>::template parser<S>();
   }
+
+  template <std::size_t S>
+  using parser_t = typename indexed_container<S, at_t<S, Ts...>>::parser_t;
 };
 
 }  // namespace detail

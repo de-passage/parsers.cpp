@@ -11,6 +11,7 @@
 #include "./range_parser.hpp"
 
 #include <iterator>
+#include <string_view>
 #include <type_traits>
 
 namespace parsers {
@@ -64,11 +65,15 @@ template <class Descriptor, class T>
 }
 
 template <class Descriptor, class T>
-[[nodiscard]] constexpr auto match_span(Descriptor&& descriptor,
+[[nodiscard]] constexpr auto match_view(Descriptor&& descriptor,
                                         const T& input) noexcept {
   using std::begin;
-  return std::pair{begin(input),
-                   end_of_match(std::forward<Descriptor>(descriptor), input)};
+  using iterator = decltype(begin(input));
+  using value_type = typename std::iterator_traits<iterator>::value_type;
+  const auto eom = end_of_match(std::forward<Descriptor>(descriptor), input);
+  const auto b = begin(input);
+  return std::basic_string_view<value_type>{
+      b, static_cast<std::size_t>(std::distance(eom, b))};
 }
 
 template <class Descriptor, class T>
@@ -77,6 +82,16 @@ template <class Descriptor, class T>
   using std::begin;
   return end_of_match(std::forward<Descriptor>(descriptor), input) -
          begin(input);
+}
+
+template <class Descriptor, class T>
+constexpr auto parse_range(Descriptor&& desc, const T& input) noexcept {
+  using std::begin;
+  using std::end;
+  const auto range_parser =
+      parsers::interpreters::make_parser<parsers::interpreters::range_parser>(
+          std::forward<Descriptor>(desc));
+  return range_parser(begin(input), end(input));
 }
 
 }  // namespace parsers
