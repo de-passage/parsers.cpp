@@ -357,14 +357,14 @@ struct sequence
 
   static_assert(sequence_length > 0, "Empty sequence not allowed");
   constexpr sequence() noexcept = default;
-  template <
-      class... Ts,
-      std::enable_if_t<sequence_length == sizeof...(Ts) &&
-                           std::conjunction_v<std::is_convertible<Ts, Ss>...>,
-                       int> = 0>
+  template <class... Ts,
+            std::enable_if_t<std::conjunction_v<std::is_convertible<Ts, Ss>...>,
+                             int> = 0>
   constexpr explicit sequence(Ts&&... ts) noexcept
       : base{std::forward<Ts>(ts)...} {}
 };
+template <class A, class... Args>
+sequence(A&&, Args&&...) -> sequence<std::decay_t<A>, std::decay_t<Args>...>;
 
 }  // namespace parsers::description
 
