@@ -66,3 +66,19 @@ TEST(Alternative, CanParseRanges) {
   constexpr auto p3 = parse_range(a, "whatever");
   static_assert(p3.is_error());
 }
+
+TEST(Alternative, MatchesCorrectly) {
+  using parsers::match_length;
+  using namespace parsers::description;
+  constexpr auto a = alternative{character{1}, character{3}, character{5}};
+  constexpr int s1[] = {1, 2, 4, 5};
+  constexpr int s2[] = {2, 1, 3};
+  constexpr int s3[] = {5, 1, 3, 1, 1};
+
+  constexpr auto p1 = match_length(a, s1);
+  static_assert(p1 == 1);
+  constexpr auto p2 = match_length(a, s2);
+  static_assert(p2 == 0);
+  constexpr auto p3 = match_length(many{a}, s3);
+  static_assert(p3 == 5);
+}

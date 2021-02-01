@@ -90,6 +90,12 @@ struct matcher {
                                         Args&&... args) noexcept {
     return detail::last_of(std::forward<Args>(args)...);
   }
+
+  template <std::size_t S, class D, class I>
+  constexpr static inline auto alternative([[maybe_unused]] type_t<D>,
+                                           I&& input) noexcept {
+    return input;
+  }
 };
 
 }  // namespace parsers::interpreters
