@@ -29,8 +29,8 @@ constexpr auto make_parser(const T& parser_config) {
     };
   }
   else if constexpr (dpsg::is_template_instance_v<T, either>) {
-    return [left = make_parser(parser_config.left()),
-            right = make_parser(parser_config.right())](
+    return [left = make_parser(parser_config.template parser<0>()),
+            right = make_parser(parser_config.template parser<1>())](
                auto beg, auto end) -> parser_result<decltype(beg)> {
       if (auto r = left(beg, end); r.has_value()) {
         return r;
@@ -39,8 +39,8 @@ constexpr auto make_parser(const T& parser_config) {
     };
   }
   else if constexpr (dpsg::is_template_instance_v<T, both>) {
-    return [left = make_parser(parser_config.left()),
-            right = make_parser(parser_config.right())](
+    return [left = make_parser(parser_config.template parser<0>()),
+            right = make_parser(parser_config.template parser<1>())](
                auto beg, auto end) -> parser_result<decltype(beg)> {
       if (auto r1 = left(beg, end); r1.has_value()) {
         if (auto r2 = right(*r1, end); r2.has_value()) {

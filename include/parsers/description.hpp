@@ -100,14 +100,6 @@ constexpr static inline bool is_failure_v = is_failure<T>::value;
 
 struct succeed_t {};
 
-template <class A, class B>
-struct empty_pair {
-  using left_t = A;
-  using right_t = B;
-  constexpr static inline left_t left() noexcept { return {}; }
-  constexpr static inline right_t right() noexcept { return {}; }
-};
-
 namespace detail {
 template <class It, class Out>
 constexpr void copy(It beg, It end, Out out) noexcept {
@@ -254,73 +246,45 @@ struct indexed_sequence<std::index_sequence<Ss...>, Ts...>
   constexpr static inline std::size_t sequence_length = sizeof...(Ss);
 };
 
+template <class... Args>
+using make_indexed_sequence =
+    indexed_sequence<std::index_sequence_for<Args...>, Args...>;
+
 }  // namespace detail
 
 template <class A, class B>
-struct pair : detail::indexed_sequence<std::index_sequence<0, 1>, A, B> {
-  using base = detail::indexed_sequence<std::index_sequence<0, 1>, A, B>;
-
- public:
-  using left_t = typename base::template parser_t<0>;
-  using right_t = typename base::template parser_t<1>;
-
-  constexpr pair() = default;
-
-  template <class T, class U>
-  constexpr pair(T&& l, U&& r) noexcept
-      : base{std::forward<T>(l), std::forward<U>(r)} {}
-  constexpr inline decltype(auto) left() const& noexcept {
-    return base::template parser<0>();
-  }
-  constexpr inline decltype(auto) right() const& noexcept {
-    return base::template parser<1>();
-  }
-  constexpr inline decltype(auto) left() & noexcept {
-    return base::template parser<0>();
-  }
-  constexpr inline decltype(auto) right() & noexcept {
-    return base::template parser<1>();
-  }
-  constexpr inline decltype(auto) left() const&& noexcept {
-    return static_cast<const pair&&>(*this).base::template parser<0>();
-  }
-  constexpr inline decltype(auto) right() const&& noexcept {
-    return static_cast<const pair&&>(*this).base::template parser<1>();
-  }
-  constexpr inline decltype(auto) left() && noexcept {
-    return static_cast<pair&&>(*this).base::template parser<0>();
-  }
-  constexpr inline decltype(auto) right() && noexcept {
-    return static_cast<pair&&>(*this).base::template parser<1>();
-  }
-};
-
-template <class A, class B, class C = pair<A, B>>
-struct either : C {
+struct either : detail::make_indexed_sequence<A, B> {
+  using base = detail::make_indexed_sequence<A, B>;
   constexpr either() = default;
   template <class T, class U>
   constexpr either(T&& t, U&& u) noexcept
-      : C{std::forward<T>(t), std::forward<U>(u)} {}
+      : base{std::forward<T>(t), std::forward<U>(u)} {}
+
+  friend constexpr std::true_type is_alternative_f(const either&) noexcept;
 };
+
 template <class A,
           class B,
           class A1 = detail::remove_cvref_t<A>,
           class B1 = detail::remove_cvref_t<B>>
-either(A&&, B&&) -> either<A1, B1, pair<A1, B1>>;
+either(A&&, B&&) -> either<A1, B1>;
 
-template <class A, class B, class C = pair<A, B>>
-struct both : C {
+template <class A, class B>
+struct both : detail::make_indexed_sequence<A, B> {
+  using base = detail::make_indexed_sequence<A, B>;
   constexpr both() = default;
   template <class T, class U>
   constexpr both(T&& t, U&& u) noexcept
-      : C{std::forward<T>(t), std::forward<U>(u)} {}
+      : base{std::forward<T>(t), std::forward<U>(u)} {}
+
+  friend constexpr std::true_type is_sequence_f(const both&) noexcept;
 };
 
 template <class A,
           class B,
           class A1 = detail::remove_cvref_t<A>,
           class B1 = detail::remove_cvref_t<B>>
-both(A&&, B&&) -> both<A1, B1, pair<A1, B1>>;
+both(A&&, B&&) -> both<A1, B1>;
 
 template <class P, class C = empty_container<P>>
 struct many : C {
@@ -370,42 +334,6 @@ struct replace_self<R, C<Args...>> {
 template <class R, class T>
 using replace_self_t = typename replace_self<R, T>::type;
 
-template <class T, class F>
-struct stateful_recursive_container {
- private:
-  using unfixed_parser_t = T;
-
-  template <class U>
-  struct pointer_container {
-    using parser_t = U;
-    template <class P,
-              std::enable_if_t<std::is_same_v<std::decay_t<P>, U>, int> = 0>
-    constexpr pointer_container(P&& p) : U{std::forward<P>(p)} {}
-
-    constexpr const parser_t& parser() const noexcept { return *this; }
-  };
-
- public:
-  using parser_t = pointer_container<
-      detail::replace_self_t<pointer_container<unfixed_parser_t>,
-                             unfixed_parser_t>>;
-
- private:
-  parser_t _parser;
-
- public:
-  template <
-      class U,
-      std::enable_if_t<std::is_convertible_v<unfixed_parser_t, U>, int> = 0>
-  constexpr stateful_recursive_container(U&& p) noexcept
-      : _parser{std::forward<U>(p)} {}
-
-  constexpr const parser_t& parser() const noexcept { return _parser; }
-
-  friend constexpr std::true_type is_recursive_f(
-      stateful_recursive_container) noexcept;
-};
-
 template <class T, class = void>
 struct has_plain_parser : std::false_type {};
 template <class T>
@@ -454,9 +382,9 @@ constexpr replace_self_t<std::decay_t<U>, std::decay_t<T>> replace(
 }  // namespace detail
 
 template <class T>
-struct fixed {
+struct fix {
  private:
-  using fixed_parser_t = detail::replace_self_t<fixed, T>;
+  using fixed_parser_t = detail::replace_self_t<fix, T>;
   using unfixed_parser_t = T;
 
   unfixed_parser_t _parser;
@@ -468,14 +396,16 @@ struct fixed {
       class U,
       std::enable_if_t<std::is_convertible_v<unfixed_parser_t, std::decay_t<U>>,
                        int> = 0>
-  constexpr explicit fixed(U&& u) : _parser{std::forward<U>(u)} {}
+  constexpr explicit fix(U&& u) : _parser{std::forward<U>(u)} {}
 
-  friend constexpr std::true_type is_recursive_f(fixed) noexcept;
+  friend constexpr std::true_type is_recursive_f(fix) noexcept;
 
   constexpr parser_t parser() const noexcept {
     return detail::replace(_parser, *this);
   }
 };
+template <class T>
+fix(T&&) -> fix<detail::remove_cvref_t<T>>;
 
 constexpr std::false_type is_recursive_f(...) noexcept;
 template <class T>
@@ -519,9 +449,13 @@ struct sequence
                              int> = 0>
   constexpr explicit sequence(Ts&&... ts) noexcept
       : base{std::forward<Ts>(ts)...} {}
+
+  friend constexpr std::true_type is_sequence_f(const sequence&) noexcept;
 };
 template <class A, class... Args>
 sequence(A&&, Args&&...) -> sequence<std::decay_t<A>, std::decay_t<Args>...>;
+
+constexpr std::false_type is_sequence_f(...) noexcept;
 
 template <class... Ss>
 struct alternative
@@ -535,10 +469,23 @@ struct alternative
                              int> = 0>
   constexpr explicit alternative(Ts&&... ts) noexcept
       : base{std::forward<Ts>(ts)...} {}
+
+  friend constexpr std::true_type is_alternative_f(const alternative&) noexcept;
 };
 template <class A, class... Args>
 alternative(A&&, Args&&...)
     -> alternative<std::decay_t<A>, std::decay_t<Args>...>;
+
+constexpr std::false_type is_alternative_f(...) noexcept;
+
+template <class T>
+using is_alternative = decltype(is_alternative_f(std::declval<T>()));
+template <class T>
+constexpr static inline bool is_alternative_v = is_alternative<T>::value;
+template <class T>
+using is_sequence = decltype(is_sequence_f(std::declval<T>()));
+template <class T>
+constexpr static inline bool is_sequence_v = is_sequence<T>::value;
 }  // namespace parsers::description
 
 #endif  // GUARD_PARSERS_DESCRIPTIONS_HPP

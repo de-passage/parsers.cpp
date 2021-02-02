@@ -331,28 +331,6 @@ constexpr auto parsers_interpreters_make_parser(M&& descriptor,
       interpreter(descriptor.parser())};
 }
 
-template <class B, class I, detail::instance_of<B, description::both> = 0>
-constexpr auto parsers_interpreters_make_parser(B&& descriptor,
-                                                I interpreter) noexcept {
-  return detail::both_parser<B,
-                             I,
-                             decltype(interpreter(descriptor.left())),
-                             decltype(interpreter(descriptor.right()))>{
-      interpreter(descriptor.left()), interpreter(descriptor.right())};
-}
-
-template <class E, class I, detail::instance_of<E, description::either> = 0>
-constexpr auto parsers_interpreters_make_parser(E&& descriptor,
-                                                I&& interpreter) noexcept {
-  return detail::either_parser<E,
-                               I,
-                               decltype(interpreter(descriptor.left())),
-                               decltype(interpreter(descriptor.right()))>{
-      interpreter(descriptor.left()), interpreter(descriptor.right())
-
-  };
-}
-
 template <class I>
 constexpr auto parsers_interpreters_make_parser(
     [[maybe_unused]] description::succeed_t,
@@ -380,7 +358,9 @@ constexpr auto parsers_interpreters_make_parser(
       std::forward<S>(descriptor)};
 }
 
-template <class S, class I, detail::instance_of<S, description::sequence> = 0>
+template <class S,
+          class I,
+          std::enable_if_t<description::is_sequence_v<S>, int> = 0>
 constexpr auto parsers_interpreters_make_parser(
     S&& descriptor,
     [[maybe_unused]] I&& interpreter) noexcept {
@@ -388,11 +368,9 @@ constexpr auto parsers_interpreters_make_parser(
       std::forward<S>(descriptor), std::forward<I>(interpreter)};
 }
 
-namespace detail {}  // namespace detail
-
 template <class A,
           class I,
-          detail::instance_of<A, description::alternative> = 0>
+          std::enable_if_t<description::is_alternative_v<A>, int> = 0>
 constexpr auto parsers_interpreters_make_parser(
     A&& descriptor,
     [[maybe_unused]] I&& interpreter) noexcept {

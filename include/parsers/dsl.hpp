@@ -69,15 +69,6 @@ constexpr static inline fail_t<void> fail;
 
 constexpr static inline parsers::description::self_t self;
 
-namespace detail {}  // namespace detail
-
-struct fix_t {
-  template <class D>
-  constexpr auto operator()(D&& descriptor) const noexcept {
-    return description::fixed<std::decay_t<D>>(std::forward<D>(descriptor));
-  }
-} constexpr static inline fix;
-
 }  // namespace parsers::dsl
 
 namespace parsers::customization_points {

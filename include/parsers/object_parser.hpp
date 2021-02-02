@@ -137,14 +137,14 @@ struct object_parser {
     using type =
         std::vector<typename object<std::decay_t<T>, std::decay_t<I>>::type>;
   };
-  template <class A, class B, class C, class I>
-  struct object<description::either<A, B, C>, I> {
+  template <class A, class B, class I>
+  struct object<description::either<A, B>, I> {
     template <class T>
     using t_ = typename object<std::decay_t<T>, std::decay_t<I>>::type;
     using type = std::variant<t_<A>, t_<B>>;
   };
-  template <class A, class B, class C, class I>
-  struct object<description::both<A, B, C>, I> {
+  template <class A, class B, class I>
+  struct object<description::both<A, B>, I> {
     template <class T>
     using t_ = typename object<std::decay_t<T>, std::decay_t<I>>::type;
     using type = std::pair<t_<A>, t_<B>>;
