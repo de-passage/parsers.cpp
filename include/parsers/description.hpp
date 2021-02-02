@@ -247,6 +247,10 @@ struct end_t {};
 namespace detail {
 template <class T>
 struct construct_parser_t {
+  constexpr construct_parser_t() noexcept {}
+  template <class U>
+  constexpr explicit construct_parser_t(U&&) noexcept {}
+
   [[nodiscard]] constexpr auto parser() const noexcept {
     return typename T::parser_t{};
   }
@@ -255,6 +259,13 @@ struct construct_parser_t {
 
 template <class T>
 struct recursive : detail::construct_parser_t<recursive<T>> {
+  using base = detail::construct_parser_t<recursive<T>>;
+  constexpr recursive() noexcept = default;
+
+  template <class U,
+            std::enable_if_t<std::is_constructible_v<base, U>, int> = 0>
+  constexpr explicit recursive(U&& u) noexcept : base{std::forward<U>(u)} {}
+
   constexpr friend std::true_type is_recursive_f(
       [[maybe_unused]] recursive _) noexcept;
 
@@ -396,6 +407,8 @@ struct alternative
 template <class A, class... Args>
 alternative(A&&, Args&&...)
     -> alternative<std::decay_t<A>, std::decay_t<Args>...>;
+
+struct self_t {};
 }  // namespace parsers::description
 
 #endif  // GUARD_PARSERS_DESCRIPTIONS_HPP

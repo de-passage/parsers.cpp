@@ -67,30 +67,64 @@ struct fail_t<void> : description::fail_t<fail_t<void>> {
 };
 constexpr static inline fail_t<void> fail;
 
+constexpr static inline parsers::description::self_t self;
+
+namespace detail {}  // namespace detail
+
+namespace detail {
+template <class R, class T>
+struct replace_self {
+  using type = T;
+};
+template <class R>
+struct replace_self<R, ::parsers::description::self_t> {
+  using type = R;
+};
+
+template <class R, template <class...> class C, class... Args>
+struct replace_self<R, C<Args...>> {
+  using type = C<typename replace_self<R, Args>::type...>;
+};
+
+template <class R, class T>
+using replace_self_t = typename replace_self<R, T>::type;
+
+template <class T>
+struct fixed : ::parsers::description::recursive<replace_self_t<fixed<T>, T>> {
+  using base = ::parsers::description::recursive<replace_self_t<fixed<T>, T>>;
+
+  template <class U,
+            std::enable_if_t<std::is_same_v<T, std::decay_t<U>>, int> = 0>
+  constexpr explicit fixed(U&& u) : base{std::forward<U>(u)} {}
+
+  constexpr operator description::self_t() const noexcept {
+    return description::self_t{};
+  }
+};
+}  // namespace detail
+
+struct fix_t {
+  template <class D>
+  constexpr auto operator()(D&& descriptor) const noexcept {
+    return detail::fixed<std::decay_t<D>>(std::forward<D>(descriptor));
+  }
+} constexpr static inline fix;
+
 }  // namespace parsers::dsl
+
 namespace parsers::customization_points {
 template <class C, class T, std::enable_if_t<std::is_integral_v<C>, int> = 0>
-constexpr auto parsers_interpreters_make_matcher(C c,
-                                                 T&& interpreter) noexcept {
+constexpr auto parsers_interpreters_make_parser(C c, T&& interpreter) noexcept {
   return std::forward<T>(interpreter)(description::dynamic_character<C>{c});
 }
-template <class C, std::size_t S, class T>
-constexpr auto parsers_interpreters_make_matcher(C (&c)[S],
-                                                 T&& interpreter) noexcept {
-  return std::forward<T>(interpreter)(
-      description::static_string<C>{c, static_cast<C*>(c) + S - 1});
-}
-template <class C, class T, std::enable_if_t<std::is_integral_v<C>, int> = 0>
-constexpr auto parsers_interpreters_make_parser(C c, T&& interpreter) noexcept {
-  return std::forward<T>(interpreter)(
-      description::dynamic_character<std::remove_cv_t<C>>{c});
-}
-template <class C, std::size_t S, class T>
+template <class C,
+          std::size_t S,
+          class T,
+          std::enable_if_t<std::is_integral_v<C>, int> = 0>
 constexpr auto parsers_interpreters_make_parser(C (&c)[S],
                                                 T&& interpreter) noexcept {
   return std::forward<T>(interpreter)(
-      description::static_string<std::remove_cv_t<C>>{
-          c, static_cast<C*>(c) + S - 1});
+      description::static_string<C>{c, static_cast<C*>(c) + S - 1});
 }
 }  // namespace parsers::customization_points
 
