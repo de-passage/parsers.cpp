@@ -56,7 +56,8 @@ set (TEST_SRC_FILES
   range_parser.cpp 
   sequence.cpp 
   alternative.cpp
-  recursive_dsl.cpp)
+  recursive_dsl.cpp
+  math_parser.cpp)
 list (TRANSFORM TEST_SRC_FILES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
 add_executable(tests ${TEST_SRC_FILES})
 target_link_libraries(tests gtest_main)

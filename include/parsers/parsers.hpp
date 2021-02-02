@@ -6,6 +6,8 @@
 #include "./customization_points.hpp"
 
 #include "./description.hpp"
+#include "./description/ascii.hpp"
+
 #include "./matcher.hpp"
 #include "./object_parser.hpp"
 #include "./range_parser.hpp"
@@ -73,7 +75,7 @@ template <class Descriptor, class T>
   const auto eom = end_of_match(std::forward<Descriptor>(descriptor), input);
   const auto b = begin(input);
   return std::basic_string_view<value_type>{
-      b, static_cast<std::size_t>(std::distance(eom, b))};
+      b, static_cast<std::size_t>(std::distance(b, eom))};
 }
 
 template <class Descriptor, class T>
@@ -82,6 +84,14 @@ template <class Descriptor, class T>
   using std::begin;
   return end_of_match(std::forward<Descriptor>(descriptor), input) -
          begin(input);
+}
+
+template <class Descriptor, class T>
+[[nodiscard]] constexpr bool match_full(Descriptor&& descriptor,
+                                        const T& input) noexcept {
+  using std::end;
+  return end_of_match(std::forward<Descriptor>(descriptor), input) ==
+         end(input);
 }
 
 template <class Descriptor, class T>
