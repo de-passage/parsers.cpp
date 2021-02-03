@@ -48,6 +48,10 @@ add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
 # later. Otherwise we have to add them here ourselves.
 include_directories("${gtest_SOURCE_DIR}/include")
 
+set (TEST_SRC_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
+set (EXAMPLE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/examples/)
+set (LIBRARY_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 set (TEST_SRC_FILES 
   parsers.cpp 
   matcher.cpp 
@@ -56,13 +60,14 @@ set (TEST_SRC_FILES
   range_parser.cpp 
   sequence.cpp 
   alternative.cpp
-  recursive_dsl.cpp
-  math_parser.cpp)
-list (TRANSFORM TEST_SRC_FILES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
+  recursive_dsl.cpp)
+list (TRANSFORM TEST_SRC_FILES PREPEND ${TEST_SRC_DIRECTORY})
 add_executable(tests ${TEST_SRC_FILES})
 target_link_libraries(tests gtest_main)
-target_include_directories(tests PUBLIC include)
+target_include_directories(tests PUBLIC ${LIBRARY_INCLUDE_DIRECTORY})
 add_test(NAME gtests COMMAND tests)
+
+add_subdirectory(${EXAMPLE_DIRECTORY})
 
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
