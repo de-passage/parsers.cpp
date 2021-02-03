@@ -2,8 +2,9 @@
 #define GUARD_EXAMPLES_CLI_OPTIONS_DESCRIPTION_HPP
 
 #include <parsers/parsers.hpp>
-#include "parsers/description.hpp"
-#include "parsers/description/ascii.hpp"
+
+#include <string>
+#include <utility>
 
 namespace cli_options {
 using namespace parsers::description;
@@ -12,6 +13,8 @@ using ascii::whitespace;
 
 using dash = character<'-'>;
 using double_dash = both<dash, dash>;
+template <class T>
+using optional = either<T, succeed_t>;
 
 using short_option_name = both<dash, alpha>;
 using long_option_name =
@@ -39,15 +42,25 @@ struct value_characters : satisfy<value_characters> {
   constexpr bool operator()(T c) const noexcept {
     return !(ascii::isspace(c) || ascii::isctrl(c) || c == '"');
   }
-};
-using value = either<string, many<value_characters>>;
+} constexpr static inline is_value_character;
 
-using short_option = sequence<short_option_name, many<whitespace>, value>;
+struct initial_value_character : satisfy<initial_value_character> {
+  template <class T>
+  constexpr bool operator()(T c) const noexcept {
+    return c != '-' && is_value_character(c);
+  }
+};
+using value =
+    either<string, both<initial_value_character, many<value_characters>>>;
+
+using short_option =
+    sequence<short_option_name, optional<both<many<whitespace>, value>>>;
 using long_option = sequence<
     long_option_name,
+    optional<sequence<
     either<sequence<many<whitespace>, character<'='>, many<whitespace>>,
            many1<whitespace>>,
-    value>;
+        value>>>;
 
 using option_list =
     both<many<both<many1<whitespace>, either<short_option, long_option>>>,

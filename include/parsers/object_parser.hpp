@@ -46,31 +46,11 @@ constexpr static inline auto build([[maybe_unused]] type_t<S>,
   return *std::forward<I>(b);
 }
 
-template <auto V,
-          class C,
-          class I,
-          std::enable_if_t<!std::is_same_v<decltype(V), nullptr_t>, int> = 0>
-constexpr static inline typename description::character<V, C>::value_type build(
-    [[maybe_unused]] type_t<description::character<V, C>>,
-    [[maybe_unused]] I&& b,
-    [[maybe_unused]] I&& e) noexcept {
-  return description::character<V, C>::value;
-}
-
 template <class C, class I>
 constexpr static inline typename description::character<nullptr, C>::value_type
 build([[maybe_unused]] type_t<description::character<nullptr, C>>,
       [[maybe_unused]] I&& b,
       [[maybe_unused]] I&& e) noexcept {
-  return *std::forward<I>(b);
-}
-
-template <class I>
-constexpr static inline
-    typename std::iterator_traits<std::decay_t<I>>::value_type
-    build([[maybe_unused]] type_t<description::any_t>,
-          I&& b,
-          [[maybe_unused]] I&& e) noexcept {
   return *std::forward<I>(b);
 }
 
@@ -132,40 +112,33 @@ struct object_parser {
         detail::object<std::decay_t<T>, std::decay_t<I>>>::type;
   };
 
-  template <class A, class B, class I>
-  struct object<description::either<A, B>, I> {
-    template <class T>
-    using t_ = typename object<std::decay_t<T>, std::decay_t<I>>::type;
-    using type = std::variant<t_<A>, t_<B>>;
-  };
+  template <class I, class T>
+  using object_t = typename object<std::decay_t<T>, std::decay_t<I>>::type;
 
   template <class M, class I>
   struct object<M, I, std::enable_if_t<description::is_dynamic_range_v<M>>> {
-    template <class T>
-    using t_ = typename object<std::decay_t<T>, std::decay_t<I>>::type;
-    using type = std::vector<t_<typename M::parser_t>>;
+    using type = std::vector<object_t<I, typename M::parser_t>>;
   };
-  template <class A, class B, class I>
-  struct object<description::both<A, B>, I> {
-    template <class T>
-    using t_ = typename object<std::decay_t<T>, std::decay_t<I>>::type;
-    using type = std::pair<t_<A>, t_<B>>;
-  };
-  template <class I, class... Args>
-  struct object<description::sequence<Args...>, I> {
-    template <class T>
-    using t_ = typename object<std::decay_t<T>, std::decay_t<I>>::type;
-    using type = std::tuple<t_<Args>...>;
-  };
-  template <class I, class... Args>
-  struct object<description::alternative<Args...>, I> {
-    template <class T>
-    using t_ = typename object<std::decay_t<T>, std::decay_t<I>>::type;
-    using type = std::variant<t_<Args>...>;
-  };
-
   template <class I, class T>
-  using object_t = typename object<std::decay_t<T>, std::decay_t<I>>::type;
+  struct object<T, I, std::enable_if_t<description::is_sequence_v<T>>> {
+    template <class U>
+    struct t;
+    template <template <class...> class C, class... Ts>
+    struct t<C<Ts...>> {
+      using type = std::tuple<object_t<I, Ts>...>;
+    };
+    using type = typename t<T>::type;
+  };
+  template <class T, class I>
+  struct object<T, I, std::enable_if_t<description::is_alternative_v<T>>> {
+    template <class U>
+    struct v;
+    template <template <class...> class C, class... Ts>
+    struct v<C<Ts...>> {
+      using type = std::variant<object_t<I, Ts>...>;
+    };
+    using type = typename v<T>::type;
+  };
 
   template <class I, class T>
   using result_t = dpsg::result<std::pair<I, object_t<I, T>>, I>;
@@ -199,8 +172,8 @@ struct object_parser {
                                        Acc& acc,
                                        Add&& add) noexcept {
     if (add.has_value()) {
-      acc.value().second.push_back(std::forward<Add>(add).value().second);
-      acc.value().first = std::forward<Add>(add).value().first;
+      acc.value().second.push_back(std::get<1>(std::forward<Add>(add).value()));
+      acc.value().first = std::get<0>(std::forward<Add>(add).value());
     }
     return std::ref(add);
   }

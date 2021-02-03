@@ -95,14 +95,14 @@ TEST(ObjectParser, RecursiveShouldWork) {
   ASSERT_TRUE(p.has_value());
   ASSERT_EQ(p.value().second.index(), 0);
   auto& l = std::get<0>(p.value().second);
-  ASSERT_EQ(l.first, 'a');
-  ASSERT_TRUE(l.second);
-  auto& ls = *l.second;
+  ASSERT_EQ(std::get<0>(l), 'a');
+  ASSERT_TRUE(std::get<1>(l));
+  auto& ls = *std::get<1>(l);
   ASSERT_EQ(ls.index(), 0);
   auto& lsl = std::get<0>(ls);
-  ASSERT_EQ(lsl.first, 'a');
-  ASSERT_TRUE(lsl.second);
-  auto& lsls = *lsl.second;
+  ASSERT_EQ(std::get<0>(lsl), 'a');
+  ASSERT_TRUE(std::get<1>(lsl));
+  auto& lsls = *std::get<1>(lsl);
   ASSERT_EQ(lsls.index(), 1);
   ASSERT_EQ(std::get<1>(lsls).index(), 0);
 
@@ -111,11 +111,11 @@ TEST(ObjectParser, RecursiveShouldWork) {
 
   using indir = parsers::interpreters::detail::
       unique_ptr<rec_t, parsers::interpreters::object_parser, const char*>;
-  using var = std::variant<std::pair<char,
-                                     parsers::interpreters::detail::unique_ptr<
-                                         rec_t,
-                                         parsers::interpreters::object_parser,
-                                         const char*>>,
+  using var = std::variant<std::tuple<char,
+                                      parsers::interpreters::detail::unique_ptr<
+                                          rec_t,
+                                          parsers::interpreters::object_parser,
+                                          const char*>>,
                            std::variant<char, parsers::empty>>;
 
   static_assert(std::is_same_v<
