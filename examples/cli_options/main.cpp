@@ -5,7 +5,7 @@
 
 constexpr auto option_list = [] {
   using namespace parsers::dsl;
-  return cli_options::option_list{} + parsers::dsl::eos;
+  return cli_options::option_list{} & parsers::dsl::eos;
 }();
 
 constexpr auto valid = [](const auto& str) {

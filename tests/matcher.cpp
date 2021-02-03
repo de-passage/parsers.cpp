@@ -150,8 +150,8 @@ TEST(Matcher, DynamicCharactersShouldBehaveCorrectly) {
   static_assert(match(c1 | c2, "!"));
   static_assert(match(c1 | c2, "?"));
   static_assert(!match(c1 | c2, "#"));
-  static_assert(match(c1 + c2, "?!"));
-  static_assert(!match(c1 + c2, "!?"));
+  static_assert(match(c1 & c2, "?!"));
+  static_assert(!match(c1 & c2, "!?"));
   ASSERT_TRUE(match(c1, "?"s));
   ASSERT_FALSE(match(c1, "!"s));
   ASSERT_FALSE(match(c2, "?"s));
@@ -159,6 +159,6 @@ TEST(Matcher, DynamicCharactersShouldBehaveCorrectly) {
   ASSERT_TRUE(match(c1 | c2, "!"s));
   ASSERT_TRUE(match(c1 | c2, "?"s));
   ASSERT_FALSE(match(c1 | c2, "#"s));
-  ASSERT_TRUE(match(c1 + c2, "?!"s));
-  ASSERT_FALSE(match(c1 + c2, "!?"s));
+  ASSERT_TRUE(match(c1 & c2, "?!"s));
+  ASSERT_FALSE(match(c1 & c2, "!?"s));
 }

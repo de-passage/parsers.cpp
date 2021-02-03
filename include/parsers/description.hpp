@@ -13,6 +13,9 @@ using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
 
 template <class... Ts>
 struct dynamic;
+
+template <class... Ts>
+struct tuple;
 }  // namespace detail
 
 template <class CRTP>
@@ -266,6 +269,7 @@ struct indexed_sequence<std::index_sequence<Ss...>, Ts...>
   using parser_t = typename indexed_container<S, at_t<S, Ts...>>::parser_t;
 
   constexpr static inline std::size_t sequence_length = sizeof...(Ss);
+  using parsers = tuple<Ts...>;
 };
 
 template <class... Args>
@@ -519,15 +523,17 @@ struct sequence
   static_assert(base::sequence_length > 0, "Empty sequence not allowed");
   constexpr sequence() noexcept = default;
   template <class... Ts,
-            std::enable_if_t<std::conjunction_v<std::is_convertible<Ts, Ss>...>,
-                             int> = 0>
+            std::enable_if_t<
+                std::conjunction_v<std::is_constructible<container<Ss>, Ts>...>,
+                int> = 0>
   constexpr explicit sequence(Ts&&... ts) noexcept
       : base{std::forward<Ts>(ts)...} {}
 
   friend constexpr std::true_type is_sequence_f(const sequence&) noexcept;
 };
 template <class A, class... Args>
-sequence(A&&, Args&&...) -> sequence<std::decay_t<A>, std::decay_t<Args>...>;
+sequence(A&&, Args&&...)
+    -> sequence<detail::remove_cvref_t<A>, detail::remove_cvref_t<Args>...>;
 
 constexpr std::false_type is_sequence_f(...) noexcept;
 
@@ -539,8 +545,9 @@ struct alternative
   static_assert(base::sequence_length > 0, "Empty alternative not allowed");
   constexpr alternative() noexcept = default;
   template <class... Ts,
-            std::enable_if_t<std::conjunction_v<std::is_convertible<Ts, Ss>...>,
-                             int> = 0>
+            std::enable_if_t<
+                std::conjunction_v<std::is_constructible<container<Ss>, Ts>...>,
+                int> = 0>
   constexpr explicit alternative(Ts&&... ts) noexcept
       : base{std::forward<Ts>(ts)...} {}
 
@@ -548,7 +555,7 @@ struct alternative
 };
 template <class A, class... Args>
 alternative(A&&, Args&&...)
-    -> alternative<std::decay_t<A>, std::decay_t<Args>...>;
+    -> alternative<detail::remove_cvref_t<A>, detail::remove_cvref_t<Args>...>;
 
 constexpr std::false_type is_alternative_f(...) noexcept;
 
