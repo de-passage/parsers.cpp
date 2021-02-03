@@ -33,11 +33,10 @@ struct range_parser {
     return dpsg::failure(after);
   }
 
-  template <class T, class C, class Acc, class Add>
-  constexpr static inline auto combine(
-      [[maybe_unused]] type_t<description::many<T, C>>,
-      Acc& acc,
-      Add&& add) noexcept {
+  template <class M, class Acc, class Add>
+  constexpr static inline auto combine([[maybe_unused]] type_t<M>,
+                                       Acc& acc,
+                                       Add&& add) noexcept {
     if (add.has_value()) {
       acc.value().second = std::get<1>(std::forward<Add>(add).value());
     }

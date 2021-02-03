@@ -7,6 +7,8 @@ enable_testing()
 set(INCLUDE_DIRECTORY category_theory)
 set(HEADER_FILES )
 
+option(BUILD_INDIVIDUAL_TEST_FILES "Provide targets for individual test files" OFF)
+
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 set(CMAKE_CXX_STANDARD 17)
@@ -50,7 +52,7 @@ include_directories("${gtest_SOURCE_DIR}/include")
 
 set (TEST_SRC_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/)
 set (EXAMPLE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/examples/)
-set (LIBRARY_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set (LIBRARY_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/)
 
 set (TEST_SRC_FILES 
   parsers.cpp 
@@ -60,7 +62,20 @@ set (TEST_SRC_FILES
   range_parser.cpp 
   sequence.cpp 
   alternative.cpp
-  recursive_dsl.cpp)
+  recursive_dsl.cpp
+  additional_descriptions.cpp)
+
+if (${BUILD_INDIVIDUAL_TEST_FILES})
+foreach(FILE IN LISTS TEST_SRC_FILES)
+
+add_executable(${FILE} ${TEST_SRC_DIRECTORY}${FILE})
+target_link_libraries(${FILE} gtest_main)
+target_include_directories(${FILE} PUBLIC ${LIBRARY_INCLUDE_DIRECTORY})
+  
+endforeach(FILE)
+endif()
+
+
 list (TRANSFORM TEST_SRC_FILES PREPEND ${TEST_SRC_DIRECTORY})
 add_executable(tests ${TEST_SRC_FILES})
 target_link_libraries(tests gtest_main)

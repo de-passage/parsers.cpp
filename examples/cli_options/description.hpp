@@ -42,9 +42,6 @@ struct value_characters : satisfy<value_characters> {
 };
 using value = either<string, many<value_characters>>;
 
-template <class T>
-using many1 = both<T, many<T>>;
-
 using short_option = sequence<short_option_name, many<whitespace>, value>;
 using long_option = sequence<
     long_option_name,

@@ -10,7 +10,10 @@ namespace parsers::description {
 namespace detail {
 template <class T>
 using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
-}
+
+template <class... Ts>
+struct dynamic;
+}  // namespace detail
 
 template <class CRTP>
 struct satisfy {
@@ -31,6 +34,22 @@ struct satisfy {
     return {};
   }
 };
+template <class... Ts>
+struct satisfy<detail::dynamic<Ts...>>
+    : satisfy<satisfy<detail::dynamic<Ts...>>>, private Ts... {
+  template <
+      class... Us,
+      std::enable_if_t<std::conjunction_v<std::is_convertible_v<Us, Ts>...>,
+                       int> = 0>
+  constexpr explicit satisfy(Us&&... us) : Ts{std::forward<Us>(us)}... {}
+
+  using Ts::operator()...;
+};
+
+template <class U, class... Us>
+satisfy(U&&, Us&&...)
+    -> satisfy<detail::dynamic<std::decay_t<U>, std::decay_t<Us>...>>;
+
 constexpr std::false_type is_satisfiable_predicate_f(...) noexcept {
   return {};
 }
@@ -53,11 +72,6 @@ struct character : satisfy<character<Char, CharT>> {
   }
 };
 
-namespace detail {
-template <class T>
-struct dynamic;
-}
-
 template <typename T>
 struct character<nullptr, detail::dynamic<T>>
     : satisfy<character<nullptr, detail::dynamic<T>>> {
@@ -65,9 +79,14 @@ struct character<nullptr, detail::dynamic<T>>
 
   template <class C,
             std::enable_if_t<
-                std::negation_v<std::is_same<std::decay_t<C>, character>>,
+                std::conjunction_v<
+                    std::is_convertible<C, value_type>,
+                    std::negation<std::is_same<std::decay_t<C>, character>>>,
                 int> = 0>
   constexpr character(C&& c) noexcept : _value{std::forward<C>(c)} {}
+
+  constexpr character(const character&) noexcept = default;
+  constexpr character(character&&) noexcept = default;
 
   template <class C>
   [[nodiscard]] constexpr bool operator()(C&& c) const noexcept {
@@ -116,12 +135,15 @@ struct container {
   constexpr container() noexcept = default;
   template <class U,
             std::enable_if_t<!std::is_array_v<std::remove_reference_t<U>> &&
-                                 !std::is_same_v<std::decay_t<U>, container>,
+                                 !std::is_same_v<std::decay_t<U>, container> &&
+                                 std::is_convertible_v<U, parser_t>,
                              int> = 0>
   constexpr explicit container(U&& t) noexcept : _parser{std::forward<U>(t)} {}
-  template <
-      class U,
-      std::enable_if_t<std::is_array_v<std::remove_reference_t<U>>, int> = 0>
+
+  template <class U,
+            std::enable_if_t<std::is_array_v<std::remove_reference_t<U>> &&
+                                 !std::is_same_v<std::decay_t<U>, container>,
+                             int> = 0>
   constexpr explicit container(U&& t) noexcept
   // clang-format off
 #if defined(_MSC_VER)
@@ -133,7 +155,7 @@ struct container {
   // clang-format on
 
   constexpr container(container&&) noexcept = default;
-  constexpr container(const container&) noexcept = default;
+  constexpr container(const container& c) noexcept = default;
 
   [[nodiscard]] constexpr parser_t& parser() & noexcept { return _parser; }
   [[nodiscard]] constexpr const parser_t& parser() const& noexcept {
@@ -179,7 +201,7 @@ template <std::size_t S, class... Args>
 using at_t = typename at<S, Args...>::type;
 
 template <std::size_t S, class T>
-struct indexed_container : private container<T> {
+struct indexed_container : container<T> {
   using base = container<T>;
 
   constexpr indexed_container() noexcept = default;
@@ -286,17 +308,70 @@ template <class A,
           class B1 = detail::remove_cvref_t<B>>
 both(A&&, B&&) -> both<A1, B1>;
 
+namespace detail {
+template <std::size_t S>
+struct static_count {
+  constexpr static inline std::size_t count() noexcept { return S; }
+};
+struct dynamic_count {
+  constexpr dynamic_count(std::size_t s) noexcept : _s{s} {}
+  [[nodiscard]] constexpr inline std::size_t count() const noexcept {
+    return _s;
+  }
+
+ private:
+  std::size_t _s;
+};
+}  // namespace detail
+
+template <class N, class P, class C = empty_container<P>>
+struct at_least : N, C {
+  constexpr at_least() noexcept = default;
+  template <class Q,
+            std::enable_if_t<!std::is_same_v<std::decay_t<Q>, at_least> &&
+                                 std::is_convertible_v<Q, P>,
+                             int> = 0>
+  constexpr at_least(Q&& q) : N{}, C{std::forward<Q>(q)} {}
+  template <
+      class Q,
+      std::enable_if_t<!std::is_same_v<std::decay_t<Q>, at_least>, int> = 0>
+  constexpr at_least(std::size_t n, Q&& q) : C{std::forward<Q>(q)}, N{n} {}
+
+  friend constexpr std::true_type is_dynamic_range_f(const at_least&) noexcept;
+};
+template <class P, class P1 = detail::remove_cvref_t<P>>
+at_least(std::size_t, P&&)
+    -> at_least<detail::dynamic_count, P1, container<P1>>;
+template <std::size_t S, class P, class C = empty_container<P>>
+using at_least_n = at_least<detail::static_count<S>, P, C>;
+
 template <class P, class C = empty_container<P>>
-struct many : C {
+struct many : at_least_n<0, P, C> {
+  using base = at_least_n<0, P, C>;
   constexpr many() noexcept = default;
-  template <class Q>
-  constexpr many(Q&& q) : C{std::forward<Q>(q)} {}
+  template <class Q,
+            std::enable_if_t<!std::is_same_v<std::decay_t<Q>, many> &&
+                                 std::is_constructible_v<base, Q>,
+                             int> = 0>
+  constexpr explicit many(Q&& q) : base{std::forward<Q>(q)} {}
 };
 template <class P, class P1 = detail::remove_cvref_t<P>>
 many(P&&) -> many<P1, container<P1>>;
 
-struct end_t {};
+template <class P, class C = empty_container<P>>
+struct many1 : at_least_n<1, P, C> {
+  using base = at_least_n<1, P, C>;
+  constexpr many1() noexcept = default;
+  template <class Q,
+            std::enable_if_t<!std::is_same_v<std::decay_t<Q>, many1> &&
+                                 std::is_constructible_v<base, Q>,
+                             int> = 0>
+  constexpr explicit many1(Q&& q) : base{std::forward<Q>(q)} {}
+};
+template <class P, class P1 = detail::remove_cvref_t<P>>
+many1(P&&) -> many1<P1, container<P1>>;
 
+struct end_t {};
 struct self_t {};
 
 namespace detail {
@@ -394,8 +469,7 @@ struct fix {
 
   template <
       class U,
-      std::enable_if_t<std::is_convertible_v<unfixed_parser_t, std::decay_t<U>>,
-                       int> = 0>
+      std::enable_if_t<std::is_convertible_v<U, unfixed_parser_t>, int> = 0>
   constexpr explicit fix(U&& u) : _parser{std::forward<U>(u)} {}
 
   friend constexpr std::true_type is_recursive_f(fix) noexcept;
@@ -486,6 +560,13 @@ template <class T>
 using is_sequence = decltype(is_sequence_f(std::declval<T>()));
 template <class T>
 constexpr static inline bool is_sequence_v = is_sequence<T>::value;
+
+constexpr std::false_type is_dynamic_range_f(...) noexcept;
+template <class T>
+using is_dynamic_range = decltype(is_dynamic_range_f(std::declval<T>()));
+template <class T>
+constexpr static inline bool is_dynamic_range_v = is_dynamic_range<T>::value;
+
 }  // namespace parsers::description
 
 #endif  // GUARD_PARSERS_DESCRIPTIONS_HPP

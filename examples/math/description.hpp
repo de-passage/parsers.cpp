@@ -46,8 +46,11 @@ using math_seq =
     sequence<many<whitespace>, rec_math_expression, many<whitespace>, Ts...>;
 }
 
+static_assert(is_sequence_v<detail::math_seq<>>);
+static_assert(!is_dynamic_range_v<detail::math_seq<>>);
 constexpr detail::math_seq<parsers::dsl::eos_t> math_expression;
 constexpr detail::math_seq<> open_ended_math_expression;
+
 }  // namespace math
 
 #endif  // GUARD_EXAMPLE_MATH_DEFINITION_HPP

@@ -124,7 +124,7 @@ struct buildable<
 }  // namespace detail
 
 struct object_parser {
-  template <class T, class I>
+  template <class T, class I, class = void>
   struct object {
     using type = typename std::conditional_t<
         description::is_recursive_v<T>,
@@ -132,16 +132,18 @@ struct object_parser {
         detail::object<std::decay_t<T>, std::decay_t<I>>>::type;
   };
 
-  template <class T, class C, class I>
-  struct object<description::many<T, C>, I> {
-    using type =
-        std::vector<typename object<std::decay_t<T>, std::decay_t<I>>::type>;
-  };
   template <class A, class B, class I>
   struct object<description::either<A, B>, I> {
     template <class T>
     using t_ = typename object<std::decay_t<T>, std::decay_t<I>>::type;
     using type = std::variant<t_<A>, t_<B>>;
+  };
+
+  template <class M, class I>
+  struct object<M, I, std::enable_if_t<description::is_dynamic_range_v<M>>> {
+    template <class T>
+    using t_ = typename object<std::decay_t<T>, std::decay_t<I>>::type;
+    using type = std::vector<t_<typename M::parser_t>>;
   };
   template <class A, class B, class I>
   struct object<description::both<A, B>, I> {
@@ -192,11 +194,10 @@ struct object_parser {
     return dpsg::failure(after);
   }
 
-  template <class T, class C, class Acc, class Add>
-  constexpr static inline auto combine(
-      [[maybe_unused]] type_t<description::many<T, C>>,
-      Acc& acc,
-      Add&& add) noexcept {
+  template <class M, class Acc, class Add>
+  constexpr static inline auto combine([[maybe_unused]] type_t<M>,
+                                       Acc& acc,
+                                       Add&& add) noexcept {
     if (add.has_value()) {
       acc.value().second.push_back(std::forward<Add>(add).value().second);
       acc.value().first = std::forward<Add>(add).value().first;

@@ -47,22 +47,6 @@ template <class I, class R>
   return std::decay_t<I>::has_value(std::forward<R>(result));
 }
 
-template <class I, class T, class R>
-[[nodiscard]] constexpr auto left(R&& result) noexcept {
-  return std::decay_t<I>::left(type<std::decay_t<T>>, std::forward<R>(result));
-}
-
-template <class I, class T, class R>
-[[nodiscard]] constexpr auto right(R&& result) noexcept {
-  return std::decay_t<I>::right(type<std::decay_t<T>>, std::forward<R>(result));
-}
-
-template <class I, class T, class L, class R>
-[[nodiscard]] constexpr auto both(L&& left, R&& right) noexcept {
-  return std::decay_t<I>::both(
-      type<std::decay_t<T>>, std::forward<L>(left), std::forward<R>(right));
-}
-
 template <class I, class T, class... Args>
 [[nodiscard]] constexpr auto sequence(Args&&... args) noexcept {
   return std::decay_t<I>::sequence(type<std::decay_t<T>>,
@@ -140,58 +124,27 @@ struct end_parser {
 };
 
 template <class M, class I, class P>
-struct many_parser {
+struct dynamic_range_parser {
+  std::size_t expected;
   P parser;
   template <class T, class U>
   constexpr auto operator()(T beg, U end) const noexcept
       -> detail::result_t<I, decltype(beg), M> {
     auto acc = detail::success<I, M>(beg, beg, end);
+    std::size_t count = 0;
+    auto b = beg;
     while (beg != end) {
       auto r = detail::combine<I, M>(acc, parser(beg, end));
       if (!detail::has_value<I>(r)) {
-        break;
+        if (count >= expected) {
+          break;
+        }
+        return detail::failure<I, M>(b, beg, end);
       }
       beg = detail::next_iterator<I>(std::move(r));
+      ++count;
     }
     return acc;
-  }
-};
-
-template <class B, class I, class L, class R>
-struct both_parser {
-  L left;
-  R right;
-
-  template <class T, class U>
-  constexpr auto operator()(T beg, U end) const noexcept
-      -> detail::result_t<I, T, B> {
-    if (auto r1 = left(beg, end); detail::has_value<I>(r1)) {
-      if (auto r2 = right(detail::next_iterator<I>(r1), end);
-          detail::has_value<I>(r2)) {
-        return detail::sequence<I, B>(std::move(r1), std::move(r2));
-      }
-      return detail::failure<I, B>(beg, detail::next_iterator<I>(r1), end);
-    }
-    return detail::failure<I, B>(beg, beg, end);
-  }
-};
-
-template <class E, class I, class L, class R>
-struct either_parser {
-  L left;
-  R right;
-
-  template <class T, class U>
-  constexpr auto operator()(T beg, U end) const noexcept
-      -> detail::result_t<I, T, E> {
-    if (auto l = left(beg, end); detail::has_value<I>(l)) {
-      return detail::alternative<I, E, 0>(std::move(l));
-    }
-    auto r = right(beg, end);
-    if (detail::has_value<I>(r)) {
-      return detail::alternative<I, E, 1>(std::move(r));
-    }
-    return detail::failure<I, E>(beg, beg, end);
   }
 };
 
@@ -324,11 +277,17 @@ constexpr auto parsers_interpreters_make_parser(
   return detail::end_parser<I>{};
 }
 
-template <class M, class I, detail::instance_of<M, description::many> = 0>
+template <
+    class M,
+    class I,
+    std::enable_if_t<description::is_dynamic_range_v<std::decay_t<M>>, int> = 0>
 constexpr auto parsers_interpreters_make_parser(M&& descriptor,
-                                                I interpreter) noexcept {
-  return detail::many_parser<M, I, decltype(interpreter(descriptor.parser()))>{
-      interpreter(descriptor.parser())};
+                                                I&& interpreter) noexcept {
+  return detail::dynamic_range_parser<
+      std::decay_t<M>,
+      std::decay_t<I>,
+      decltype(interpreter(std::forward<M>(descriptor).parser()))>{
+      descriptor.count(), interpreter(std::forward<M>(descriptor).parser())};
 }
 
 template <class I>
