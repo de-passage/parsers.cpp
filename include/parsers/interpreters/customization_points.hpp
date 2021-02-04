@@ -1,9 +1,8 @@
 #ifndef PARSERS_CUSTOMIZATION_POINTS_HPP
 #define PARSERS_CUSTOMIZATION_POINTS_HPP
 
-#include "./description.hpp"
-#include "./result.hpp"
-#include "./utility.hpp"
+#include "../description.hpp"
+#include "../utility.hpp"
 
 namespace parsers::customization_points {
 namespace detail {

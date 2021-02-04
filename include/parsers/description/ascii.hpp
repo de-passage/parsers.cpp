@@ -1,7 +1,7 @@
 #ifndef GUARD_PARSERS_DESCRIPTION_ASCII_HPP
 #define GUARD_PARSERS_DESCRIPTION_ASCII_HPP
 
-#include "../description.hpp"
+#include "./satisfy.hpp"
 
 namespace parsers::description::ascii {
 
