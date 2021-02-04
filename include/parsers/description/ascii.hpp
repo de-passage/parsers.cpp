@@ -1,7 +1,9 @@
 #ifndef GUARD_PARSERS_DESCRIPTION_ASCII_HPP
 #define GUARD_PARSERS_DESCRIPTION_ASCII_HPP
 
+#include "./char_utils.hpp"
 #include "./satisfy.hpp"
+
 
 namespace parsers::description::ascii {
 
@@ -40,7 +42,7 @@ struct blank : satisfy_character<blank> {
   }
 } constexpr static inline isblank;
 
-struct graph : satisfy<graph> {
+struct graph : satisfy_character<graph> {
   template <class T>
   constexpr bool operator()(T c) const noexcept {
     return c >= 33 && c <= 126;
@@ -91,5 +93,49 @@ struct hexdigit : satisfy_character<hexdigit> {
            (c >= 97 && c <= 102);
   }
 } constexpr static inline ishex;
+
+template <auto Char, class T = decltype(Char)>
+struct case_insensitive_character
+    : satisfy_character<case_insensitive_character<Char, T>> {
+  using base = satisfy_character<case_insensitive_character<Char, T>>;
+
+  constexpr case_insensitive_character() noexcept = default;
+
+  template <class C>
+  constexpr bool operator()(C c) const noexcept {
+    return c == Char || characters::ascii::toggle_case(Char) == c;
+  }
+};
+template <class C>
+struct case_insensitive_character<nullptr, detail::dynamic<C>>
+    : satisfy_character<
+          case_insensitive_character<nullptr, detail::dynamic<C>>> {
+  using base = satisfy_character<
+      case_insensitive_character<nullptr, detail::dynamic<C>>>;
+
+  constexpr case_insensitive_character() noexcept = default;
+
+  template <class D,
+            std::enable_if_t<
+                !std::is_same_v<std::decay_t<D>, case_insensitive_character>,
+                int> = 0>
+  constexpr case_insensitive_character(D&& d) : _value(std::forward<D>(d)) {}
+
+  template <class T>
+  constexpr bool operator()(T c) const noexcept {
+    return c == _value || characters::ascii::toggle_case(_value) == c;
+  }
+
+ private:
+  C _value;
+};
+template <class C>
+case_insensitive_character(C&& c)
+    -> case_insensitive_character<nullptr, detail::dynamic<std::decay_t<C>>>;
+
+template <class T>
+using dynamic_case_insensitive_character =
+    case_insensitive_character<nullptr, detail::dynamic<T>>;
+
 }  // namespace parsers::description::ascii
 #endif  // GUARD_PARSERS_DESCRIPTION_ASCII_HPP

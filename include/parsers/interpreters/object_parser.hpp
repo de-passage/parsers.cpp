@@ -154,27 +154,17 @@ struct object_parser {
       acc.value().second.push_back(std::get<1>(std::forward<Add>(add).value()));
       acc.value().first = std::get<0>(std::forward<Add>(add).value());
     }
-    return std::ref(add);
+    return add;
   }
 
-  template <class R, detail::not_instance_of<R, std::reference_wrapper> = 0>
+  template <class R>
   constexpr static inline auto next_iterator(R&& r) noexcept {
     return std::forward<R>(r).value().first;
   }
 
-  template <class R, detail::not_instance_of<R, std::reference_wrapper> = 0>
+  template <class R>
   constexpr static inline bool has_value(R&& r) noexcept {
     return std::forward<R>(r).has_value();
-  }
-
-  template <class R, detail::instance_of<R, std::reference_wrapper> = 0>
-  constexpr static inline auto next_iterator(R&& r) noexcept {
-    return std::forward<R>(r).get().value().first;
-  }
-
-  template <class R, detail::instance_of<R, std::reference_wrapper> = 0>
-  constexpr static inline bool has_value(R&& r) noexcept {
-    return std::forward<R>(r).get().has_value();
   }
 
   template <class S, class... Args>

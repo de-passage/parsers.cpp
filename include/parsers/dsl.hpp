@@ -133,16 +133,21 @@ constexpr description::dynamic_character<char> operator""_c(char c) noexcept {
   return description::dynamic_character<char>(c);
 }
 
+constexpr description::ascii::dynamic_case_insensitive_character<char>
+operator""_ic(char c) noexcept {
+  return description::ascii::dynamic_case_insensitive_character<char>(c);
+}
+
 constexpr description::static_string<char> operator""_s(
     const char* str,
     std::size_t size) noexcept {
   return description::static_string<char>{str, str + size};
 }
 
-constexpr description::case_insensitive_static_string<char> operator""_is(
-    const char* str,
-    std::size_t size) noexcept {
-  return description::case_insensitive_static_string<char>{str, str + size};
+constexpr description::ascii::case_insensitive_static_string<char>
+operator""_is(const char* str, std::size_t size) noexcept {
+  return description::ascii::case_insensitive_static_string<char>{str,
+                                                                  str + size};
 }
 
 constexpr static inline description::end_t end{};
