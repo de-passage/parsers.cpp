@@ -1,8 +1,10 @@
 #ifndef GUARD_PARSERS_UTILITY_HPP
 #define GUARD_PARSERS_UTILITY_HPP
 
+#include "./feed.hpp"
 #include "./is_template_instance.hpp"
 
+#include <type_traits>
 #include <utility>
 
 namespace parsers {
@@ -70,7 +72,10 @@ template <class A, class B, class... Args>
   return last_of(std::forward<B>(b), std::forward<Args>(args)...);
 }
 
+template <class T>
+using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
 }  // namespace detail
+
 }  // namespace parsers
 
 #endif  // GUARD_PARSERS_UTILITY_HPP
