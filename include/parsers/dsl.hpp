@@ -129,10 +129,20 @@ template <class A,
       detail::make_index_sequence<B>);
 }
 
+constexpr description::dynamic_character<char> operator""_c(char c) noexcept {
+  return description::dynamic_character<char>(c);
+}
+
 constexpr description::static_string<char> operator""_s(
     const char* str,
-    unsigned long long size) noexcept {
+    std::size_t size) noexcept {
   return description::static_string<char>{str, str + size};
+}
+
+constexpr description::case_insensitive_static_string<char> operator""_is(
+    const char* str,
+    std::size_t size) noexcept {
+  return description::case_insensitive_static_string<char>{str, str + size};
 }
 
 constexpr static inline description::end_t end{};

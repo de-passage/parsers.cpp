@@ -53,6 +53,16 @@ template <class Descriptor, class T>
       b, static_cast<std::size_t>(std::distance(b, eom))};
 }
 
+template <class Descriptor, class... Tr>
+[[nodiscard]] constexpr auto match_view(
+    Descriptor&& descriptor,
+    const std::basic_string<Tr...>& input) noexcept {
+  using std::begin;
+  const auto eom = end_of_match(std::forward<Descriptor>(descriptor), input);
+  const auto b = begin(input);
+  return input.substr(0, static_cast<std::size_t>(std::distance(b, eom)));
+}
+
 template <class Descriptor, class T>
 [[nodiscard]] constexpr std::ptrdiff_t match_length(Descriptor&& descriptor,
                                                     const T& input) noexcept {
