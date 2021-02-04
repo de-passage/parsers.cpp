@@ -38,11 +38,19 @@ struct unique_ptr : std::unique_ptr<recursive_pointer_type<T, P, I>> {
 
 template <class I,
           class S,
-          std::enable_if_t<description::is_satisfiable_predicate_v<S>, int> = 0>
+          std::enable_if_t<description::is_satisfiable_predicate_v<S>, int> = 0,
+          not_instance_of<S, description::static_string> = 0>
 constexpr static inline auto build([[maybe_unused]] type_t<S>,
                                    I&& b,
                                    [[maybe_unused]] I&& e) noexcept {
   return *std::forward<I>(b);
+}
+
+template <class S, class I, instance_of<S, description::static_string> = 0>
+constexpr static inline S build([[maybe_unused]] type_t<S>,
+                                [[maybe_unused]] I&& b,
+                                [[maybe_unused]] I&& e) noexcept {
+  return S{std::forward<I>(b), std::forward<I>(e)};
 }
 
 template <class T,
@@ -52,13 +60,6 @@ constexpr static inline empty build([[maybe_unused]] type_t<T>,
                                     [[maybe_unused]] I&& b,
                                     [[maybe_unused]] I&& e) noexcept {
   return {};
-}
-
-template <class S, class I, instance_of<S, description::static_string> = 0>
-constexpr static inline S build([[maybe_unused]] type_t<S>,
-                                [[maybe_unused]] I&& b,
-                                [[maybe_unused]] I&& e) noexcept {
-  return S{std::forward<I>(b), std::forward<I>(e)};
 }
 
 template <class T, class I>

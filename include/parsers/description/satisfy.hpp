@@ -13,18 +13,17 @@ struct dynamic;
 template <class CRTP>
 struct satisfy {
   template <class... Args>
-  [[nodiscard]] inline constexpr bool operator()(Args&&... args) noexcept {
+  [[nodiscard]] inline constexpr auto check(Args&&... args) noexcept {
     return static_cast<CRTP*>(this)->operator()(std::forward<Args>(args)...);
   }
 
   template <class... Args>
-  [[nodiscard]] inline constexpr bool operator()(
-      Args&&... args) const noexcept {
+  [[nodiscard]] inline constexpr auto check(Args&&... args) const noexcept {
     return static_cast<const CRTP*>(this)->operator()(
         std::forward<Args>(args)...);
   }
 
-  friend constexpr std::true_type is_satisfiable_predicate_f(
+  friend constexpr std::true_type is_satisfy_f(
       [[maybe_unused]] const satisfy& unused) noexcept {
     return {};
   }
@@ -45,19 +44,29 @@ template <class U, class... Us>
 satisfy(U&&, Us&&...)
     -> satisfy<detail::dynamic<std::decay_t<U>, std::decay_t<Us>...>>;
 
-constexpr std::false_type is_satisfiable_predicate_f(...) noexcept {
-  return {};
-}
+constexpr std::false_type is_satisfy_f(...) noexcept;
 
 template <class T>
-using is_satisfiable_predicate =
-    decltype(is_satisfiable_predicate_f(std::declval<T>()));
+using is_satisfy = decltype(is_satisfy_f(std::declval<T>()));
 template <class T>
-constexpr static inline bool is_satisfiable_predicate_v =
-    is_satisfiable_predicate<T>::value;
+constexpr static inline bool is_satisfiable_predicate_v = is_satisfy<T>::value;
+
+template <class T>
+struct satisfy_character : satisfy<satisfy_character<T>> {
+  template <class U, class V>
+  [[nodiscard]] constexpr auto operator()(U&& begin, [[maybe_unused]] V&& end)
+      const noexcept {
+    auto b = begin;
+    if (begin != end &&
+        static_cast<const T*>(this)->operator()(*std::forward<U>(begin))) {
+      return ++b;
+    }
+    return b;
+  }
+};
 
 template <auto Char, class CharT = decltype(Char)>
-struct character : satisfy<character<Char, CharT>> {
+struct character : satisfy_character<character<Char, CharT>> {
   constexpr static inline auto value = Char;
   using value_type = CharT;
 
@@ -69,7 +78,7 @@ struct character : satisfy<character<Char, CharT>> {
 
 template <typename T>
 struct character<nullptr, detail::dynamic<T>>
-    : satisfy<character<nullptr, detail::dynamic<T>>> {
+    : satisfy_character<character<nullptr, detail::dynamic<T>>> {
   using value_type = T;
 
   template <class C,
@@ -98,8 +107,11 @@ using dynamic_character = character<nullptr, detail::dynamic<T>>;
 template <class T>
 character(T&&) -> character<nullptr, detail::dynamic<std::decay_t<T>>>;
 
-struct any_t : satisfy<any_t> {
-  [[nodiscard]] constexpr bool operator()(...) const noexcept { return true; }
+struct any_t : satisfy_character<any_t> {
+  template <class T>
+  [[nodiscard]] constexpr bool operator()([[maybe_unused]] T&&) const noexcept {
+    return true;
+  }
 };
 
 }  // namespace parsers::description

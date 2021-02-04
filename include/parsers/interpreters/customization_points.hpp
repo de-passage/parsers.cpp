@@ -106,9 +106,9 @@ struct predicate_parser {
   template <class U, class V>
   constexpr auto operator()(U beg, V end) const noexcept
       -> detail::result_t<I, U, T> {
-    if (beg != end && pred(*beg)) {
-      auto before = beg;
-      return detail::success<I, T>(before, ++beg, end);
+    auto r = pred.check(beg, end);
+    if (r != beg) {
+      return detail::success<I, T>(beg, r, end);
     }
     return detail::failure<I, T>(beg, beg, end);
   };
@@ -136,28 +136,6 @@ struct dynamic_range_parser {
       ++count;
     }
     return acc;
-  }
-};
-
-template <class S, class I>
-struct static_string_parser {
-  S descriptor;
-
-  template <class T, class U>
-  constexpr auto operator()(T beg, U e) const noexcept
-      -> detail::result_t<I, T, S> {
-    using std::begin;
-    using std::end;
-    auto itb = begin(descriptor);
-    auto b = beg;
-    while (itb != end(descriptor)) {
-      if (beg == e || *beg != *itb) {
-        return detail::failure<I, S>(b, beg, e);
-      }
-      ++beg;
-      ++itb;
-    }
-    return detail::success<I, S>(b, beg, e);
   }
 };
 
@@ -273,16 +251,6 @@ constexpr auto parsers_interpreters_make_parser(R&& descriptor,
   return detail::parser_indirection_t<typename std::decay_t<R>::parser_t,
                                       std::decay_t<I>>{
       std::forward<R>(descriptor).parser(), std::forward<I>(interpreter)};
-}
-
-template <class S,
-          class I,
-          detail::instance_of<S, description::static_string> = 0>
-constexpr auto parsers_interpreters_make_parser(
-    S&& descriptor,
-    [[maybe_unused]] I interpreter) noexcept {
-  return detail::static_string_parser<std::decay_t<S>, I>{
-      std::forward<S>(descriptor)};
 }
 
 template <class S,

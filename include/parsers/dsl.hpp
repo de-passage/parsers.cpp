@@ -140,7 +140,7 @@ constexpr static inline description::any_t any{};
 constexpr static inline description::succeed_t succeed{};
 
 namespace detail {
-struct is_zero : description::satisfy<is_zero> {
+struct is_zero : description::satisfy_character<is_zero> {
   template <class C>
   [[nodiscard]] constexpr bool operator()(C c) const noexcept {
     return c == static_cast<C>(0);
