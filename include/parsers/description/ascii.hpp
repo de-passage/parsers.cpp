@@ -4,95 +4,37 @@
 #include "./char_utils.hpp"
 #include "./satisfy.hpp"
 
-
 namespace parsers::description::ascii {
 
-struct digit : satisfy_character<digit> {
-  template <class T>
-  constexpr bool operator()(T d) const noexcept {
-    return d >= '0' && d <= '9';
-  }
-} constexpr static inline isdigit;
+template <class T>
+struct character_class : satisfy_character<character_class<T>>, T {
+  using T::operator();
+};
 
-struct whitespace : satisfy_character<whitespace> {
-  template <class T>
-  constexpr bool operator()(T w) const noexcept {
-    return w == 32 || (w >= 9 && w <= 13);
-  }
-} constexpr static inline isspace;
-
-struct control_character : satisfy_character<control_character> {
-  template <class T>
-  constexpr bool operator()(T c) const noexcept {
-    return (c >= 0 && c <= 31) || c == 127;
-  }
-} constexpr static inline isctrl;
-
-struct printable_character : satisfy_character<printable_character> {
-  template <class T>
-  constexpr bool operator()(T c) const noexcept {
-    return c >= 32 && c <= 126;
-  }
-} constexpr static inline isprint;
-
-struct blank : satisfy_character<blank> {
-  template <class T>
-  constexpr bool operator()(T c) const noexcept {
-    return c == 9 || c == 32;
-  }
-} constexpr static inline isblank;
-
-struct graph : satisfy_character<graph> {
-  template <class T>
-  constexpr bool operator()(T c) const noexcept {
-    return c >= 33 && c <= 126;
-  }
-} constexpr static inline isgraph;
-
-struct punctuation : satisfy_character<punctuation> {
-  template <class T>
-  constexpr bool operator()(T c) const noexcept {
-    return (c >= 33 && c <= 47) || (c >= 58 && c <= 64) ||
-           (c >= 91 && c <= 96) || (c >= 123 && c <= 126);
-  }
-} constexpr static inline ispunc;
-
-struct alphanum : satisfy_character<alphanum> {
-  template <class T>
-  constexpr bool operator()(T c) const noexcept {
-    return (c >= 48 && c <= 57) || (c >= 65 && c <= 90) ||
-           (c >= 97 && c <= 122);
-  }
-} constexpr static inline isalphanum;
-
-struct alpha : satisfy_character<alpha> {
-  template <class T>
-  constexpr bool operator()(T c) const noexcept {
-    return (c >= 65 && c <= 90) || (c >= 97 && c <= 122);
-  }
-} constexpr static inline isalpha;
-
-struct uppercase : satisfy_character<uppercase> {
-  template <class T>
-  constexpr bool operator()(T c) const noexcept {
-    return (c >= 65 && c <= 90);
-  }
-} constexpr static inline isupper;
-
-struct lowercase : satisfy_character<lowercase> {
-  template <class T>
-  constexpr bool operator()(T c) const noexcept {
-    return (c >= 97 && c <= 122);
-  }
-} constexpr static inline islower;
-
-struct hexdigit : satisfy_character<hexdigit> {
-  template <class T>
-  constexpr bool operator()(T c) const noexcept {
-    return (c >= 48 && c <= 57) || (c >= 65 && c <= 70) ||
-           (c >= 97 && c <= 102);
-  }
-} constexpr static inline ishex;
+struct cntrl_t : character_class<characters::ascii::is_cntrl_t> {
+} constexpr static inline cntrl;
+struct print_t : character_class<characters::ascii::is_print_t> {
+} constexpr static inline print;
+struct space_t : character_class<characters::ascii::is_space_t> {
+} constexpr static inline space;
+struct blank_t : character_class<characters::ascii::is_blank_t> {
+} constexpr static inline blank;
+struct graph_t : character_class<characters::ascii::is_graph_t> {
+} constexpr static inline graph;
+struct punct_t : character_class<characters::ascii::is_punct_t> {
+} constexpr static inline punct;
+struct alnum_t : character_class<characters::ascii::is_alnum_t> {
+} constexpr static inline alnum;
+struct alpha_t : character_class<characters::ascii::is_alpha_t> {
+} constexpr static inline alpha;
+struct upper_t : character_class<characters::ascii::is_upper_t> {
+} constexpr static inline upper;
+struct lower_t : character_class<characters::ascii::is_lower_t> {
+} constexpr static inline lower;
+struct digit_t : character_class<characters::ascii::is_digit_t> {
+} constexpr static inline digit;
+struct xdigit_t : character_class<characters::ascii::is_xdigit_t> {
+} constexpr static inline xdigit;
 
 template <auto Char, class T = decltype(Char)>
 struct case_insensitive_character

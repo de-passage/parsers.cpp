@@ -11,13 +11,13 @@ using opening_parenthese = character<'('>;
 using closing_parenthese = character<')'>;
 using plus = character<'+'>;
 using minus = character<'-'>;
-using whole_number = both<digit, many<digit>>;
+using whole_number = many1<digit_t>;
 using number = either<both<minus, whole_number>, whole_number>;
 template <class... Ts>
 using parenthesised = sequence<opening_parenthese,
-                               many<whitespace>,
+                               many<space_t>,
                                Ts...,
-                               many<whitespace>,
+                               many<space_t>,
                                closing_parenthese>;
 
 struct rec_math_expression;
@@ -27,9 +27,9 @@ using restricted_math_expression =
 
 template <class Op>
 using binary_operation = sequence<restricted_math_expression,
-                                  many<whitespace>,
+                                  many<space_t>,
                                   Op,
-                                  many<whitespace>,
+                                  many<space_t>,
                                   rec_math_expression>;
 using plus_op = binary_operation<plus>;
 using minus_op = binary_operation<minus>;
@@ -43,7 +43,7 @@ struct rec_math_expression
 namespace detail {
 template <class... Ts>
 using math_seq =
-    sequence<many<whitespace>, rec_math_expression, many<whitespace>, Ts...>;
+    sequence<many<space_t>, rec_math_expression, many<space_t>, Ts...>;
 }
 
 static_assert(is_sequence_v<detail::math_seq<>>);

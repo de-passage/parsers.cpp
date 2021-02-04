@@ -20,8 +20,9 @@ struct lookup_table {
     }
   }
 
-  [[nodiscard]] constexpr U operator()(U in) const noexcept {
-    return storage[static_cast<std::make_unsigned_t<U>>(in)];
+  template <class T>
+  [[nodiscard]] constexpr U operator()(T in) const noexcept {
+    return storage[static_cast<std::make_unsigned_t<T>>(in)];
   }
 
   U storage[N];
@@ -95,7 +96,7 @@ struct modify_range {
     }
   }
 };
-using to_upper = modify_range<lower, std::bit_and<>>;
+using to_upper = modify_range<lower, std::bit_xor<>>;
 using to_lower = modify_range<upper, std::bit_or<>>;
 using toggle_case = modify_range<alpha, std::bit_xor<>>;
 
@@ -126,20 +127,65 @@ enum class char_class : detail::char_class_t {
 };
 
 namespace detail {
+
+template <template <class> class T>
+[[nodiscard]] constexpr inline char_class combine(char_class left,
+                                                  char_class right) noexcept {
+  return static_cast<char_class>(T<char_class_t>{}(
+      static_cast<char_class_t>(left), static_cast<char_class_t>(right)));
+}
+
+template <template <class> class T>
+[[nodiscard]] constexpr inline char_class& update(char_class& left,
+                                                  char_class right) noexcept {
+  return left = combine<T>(left, right);
+}
+}  // namespace detail
+
+[[nodiscard]] constexpr inline char_class operator|(char_class left,
+                                                    char_class right) noexcept {
+  return detail::combine<std::bit_or>(left, right);
+}
+
+[[nodiscard]] constexpr inline char_class operator&(char_class left,
+                                                    char_class right) noexcept {
+  return detail::combine<std::bit_and>(left, right);
+}
+
+[[nodiscard]] constexpr inline char_class operator^(char_class left,
+                                                    char_class right) noexcept {
+  return detail::combine<std::bit_xor>(left, right);
+}
+
+constexpr inline char_class& operator|=(char_class& left,
+                                        char_class right) noexcept {
+  return detail::update<std::bit_or>(left, right);
+}
+
+constexpr inline char_class& operator&=(char_class& left,
+                                        char_class right) noexcept {
+  return detail::update<std::bit_and>(left, right);
+}
+
+constexpr inline char_class& operator^=(char_class& left,
+                                        char_class right) noexcept {
+  return detail::update<std::bit_xor>(left, right);
+}
+namespace detail {
 template <char_class C, class R>
 struct char_class_bit {
-  constexpr void operator()(char_class_t& c) noexcept {
-    if (check<R>(c)) {
-      c &= static_cast<char_class_t>(C);
+  constexpr void operator()(char_class& c, std::size_t s) noexcept {
+    if (check<R>(s)) {
+      c |= C;
     }
   }
 };
 
 template <class... Ts>
 struct char_class_builder {
-  [[nodiscard]] constexpr uint16_t operator()(std::size_t s) noexcept {
-    auto c = static_cast<char_class_t>(s);
-    (Ts{}(c), ...);
+  [[nodiscard]] constexpr char_class operator()(std::size_t s) noexcept {
+    auto c = char_class::none;
+    (Ts{}(c, s), ...);
     return c;
   }
 };
@@ -158,40 +204,10 @@ using char_class_lookup =
                        char_class_bit<char_class::digit, digit>,
                        char_class_bit<char_class::xdigit, xdigit>>;
 using char_class_lookup_table =
-    lookup_table<char_class_t, 128, char_class_lookup>;
-
-template <template <class> class T>
-[[nodiscard]] constexpr inline char_class combine(char_class left,
-                                                  char_class right) noexcept {
-  return static_cast<char_class>(T<char_class_t>{}(
-      static_cast<char_class_t>(left), static_cast<char_class_t>(right)));
-}
-
-template <template <class> class T>
-[[nodiscard]] constexpr inline char_class& update(char_class& left,
-                                                  char_class right) noexcept {
-  return reinterpret_cast<char_class&>(
-      reinterpret_cast<char_class_t&>(left) =
-          static_cast<char_class_t>(combine<T>(left, right)));
-}
+    lookup_table<char_class, 128, char_class_lookup>;
 }  // namespace detail
 
 constexpr static inline detail::char_class_lookup_table lookup_char_class{};
-
-[[nodiscard]] constexpr inline char_class operator|(char_class left,
-                                                    char_class right) noexcept {
-  return detail::combine<std::bit_or>(left, right);
-}
-
-[[nodiscard]] constexpr inline char_class operator&(char_class left,
-                                                    char_class right) noexcept {
-  return detail::combine<std::bit_and>(left, right);
-}
-
-[[nodiscard]] constexpr inline char_class operator^(char_class left,
-                                                    char_class right) noexcept {
-  return detail::combine<std::bit_xor>(left, right);
-}
 
 namespace detail {
 struct is_class_t {
@@ -215,18 +231,31 @@ struct test_class_t {
 };
 }  // namespace detail
 
-constexpr static inline detail::test_class_t<char_class::cntrl> is_cntrl{};
-constexpr static inline detail::test_class_t<char_class::print> is_print{};
-constexpr static inline detail::test_class_t<char_class::space> is_space{};
-constexpr static inline detail::test_class_t<char_class::blank> is_blank{};
-constexpr static inline detail::test_class_t<char_class::graph> is_graph{};
-constexpr static inline detail::test_class_t<char_class::punct> is_punct{};
-constexpr static inline detail::test_class_t<char_class::alnum> is_alnum{};
-constexpr static inline detail::test_class_t<char_class::alpha> is_alpha{};
-constexpr static inline detail::test_class_t<char_class::upper> is_upper{};
-constexpr static inline detail::test_class_t<char_class::lower> is_lower{};
-constexpr static inline detail::test_class_t<char_class::digit> is_digit{};
-constexpr static inline detail::test_class_t<char_class::xdigit> is_xdigit{};
+using is_cntrl_t = detail::test_class_t<char_class::cntrl>;
+using is_print_t = detail::test_class_t<char_class::print>;
+using is_space_t = detail::test_class_t<char_class::space>;
+using is_blank_t = detail::test_class_t<char_class::blank>;
+using is_graph_t = detail::test_class_t<char_class::graph>;
+using is_punct_t = detail::test_class_t<char_class::punct>;
+using is_alnum_t = detail::test_class_t<char_class::alnum>;
+using is_alpha_t = detail::test_class_t<char_class::alpha>;
+using is_upper_t = detail::test_class_t<char_class::upper>;
+using is_lower_t = detail::test_class_t<char_class::lower>;
+using is_digit_t = detail::test_class_t<char_class::digit>;
+using is_xdigit_t = detail::test_class_t<char_class::xdigit>;
+
+constexpr static inline is_cntrl_t is_cntrl{};
+constexpr static inline is_print_t is_print{};
+constexpr static inline is_space_t is_space{};
+constexpr static inline is_blank_t is_blank{};
+constexpr static inline is_graph_t is_graph{};
+constexpr static inline is_punct_t is_punct{};
+constexpr static inline is_alnum_t is_alnum{};
+constexpr static inline is_alpha_t is_alpha{};
+constexpr static inline is_upper_t is_upper{};
+constexpr static inline is_lower_t is_lower{};
+constexpr static inline is_digit_t is_digit{};
+constexpr static inline is_xdigit_t is_xdigit{};
 
 }  // namespace ascii
 
