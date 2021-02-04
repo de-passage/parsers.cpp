@@ -45,19 +45,12 @@ constexpr static inline auto build([[maybe_unused]] type_t<S>,
   return *std::forward<I>(b);
 }
 
-template <class C, class I>
-constexpr static inline typename description::character<nullptr, C>::value_type
-build([[maybe_unused]] type_t<description::character<nullptr, C>>,
-      [[maybe_unused]] I&& b,
-      [[maybe_unused]] I&& e) noexcept {
-  return *std::forward<I>(b);
-}
-
-template <class I>
-constexpr static inline empty build(
-    [[maybe_unused]] type_t<description::succeed_t>,
-    [[maybe_unused]] I&& b,
-    [[maybe_unused]] I&& e) noexcept {
+template <class T,
+          class I,
+          std::enable_if_t<description::is_guard_v<T>, int> = 0>
+constexpr static inline empty build([[maybe_unused]] type_t<T>,
+                                    [[maybe_unused]] I&& b,
+                                    [[maybe_unused]] I&& e) noexcept {
   return {};
 }
 
@@ -67,20 +60,6 @@ constexpr static inline S build([[maybe_unused]] type_t<S>,
                                 [[maybe_unused]] I&& e) noexcept {
   return S{std::forward<I>(b), std::forward<I>(e)};
 }
-
-template <class I>
-constexpr static inline empty build([[maybe_unused]] type_t<description::end_t>,
-                                    [[maybe_unused]] I&& b,
-                                    [[maybe_unused]] I&& e) noexcept {
-  return {};
-}
-
-template <class F,
-          class I,
-          std::enable_if_t<description::is_failure_v<F>, int> = 0>
-constexpr static inline empty build([[maybe_unused]] type_t<F>,
-                                    [[maybe_unused]] I&&,
-                                    [[maybe_unused]] I&&) noexcept;
 
 template <class T, class I>
 struct object {

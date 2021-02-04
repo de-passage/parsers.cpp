@@ -87,12 +87,16 @@ struct parser_indirection_t {
   }
 };
 
-template <class F, class I>
-struct fail_parser {
+template <class G, class I>
+struct guard_parser {
+  G guard;
   template <class T, class U>
   constexpr auto operator()(T beg, U end) const noexcept
-      -> detail::result_t<I, T, F> {
-    return detail::failure<I, F>(beg, beg, end);
+      -> detail::result_t<I, T, G> {
+    if (guard(beg, end)) {
+      return detail::success<I, G>(beg, beg, end);
+    }
+    return detail::failure<I, G>(beg, beg, end);
   }
 };
 
@@ -108,18 +112,6 @@ struct predicate_parser {
     }
     return detail::failure<I, T>(beg, beg, end);
   };
-};
-
-template <class I>
-struct end_parser {
-  template <class U, class V>
-  constexpr auto operator()(U beg, V end) const noexcept
-      -> detail::result_t<I, U, description::end_t> {
-    if (beg == end) {
-      return detail::success<I, description::end_t>(beg, beg, end);
-    }
-    return detail::failure<I, description::end_t>(beg, beg, end);
-  }
 };
 
 template <class M, class I, class P>
@@ -242,24 +234,7 @@ struct alternative_parser {
   }
 };
 
-template <class I>
-struct succeed_parser {
-  template <class T, class U>
-  constexpr auto operator()(T beg, U end) const noexcept
-      -> detail::result_t<I, T, description::succeed_t> {
-    return detail::success<I, description::succeed_t>(beg, beg, end);
-  };
-};
-
 }  // namespace detail
-
-template <class F,
-          class I,
-          std::enable_if_t<description::is_failure_v<F>, int> = 0>
-constexpr auto parsers_interpreters_make_parser([[maybe_unused]] F&&,
-                                                [[maybe_unused]] I&&) noexcept {
-  return detail::fail_parser<F, I>{};
-}
 
 template <class T,
           class I,
@@ -269,11 +244,12 @@ constexpr auto parsers_interpreters_make_parser(T&& pred,
   return detail::predicate_parser<T, I>{std::forward<T>(pred)};
 }
 
-template <class I>
-constexpr auto parsers_interpreters_make_parser(
-    [[maybe_unused]] description::end_t,
-    [[maybe_unused]] I&&) noexcept {
-  return detail::end_parser<I>{};
+template <class T,
+          class I,
+          std::enable_if_t<description::is_guard_v<T>, int> = 0>
+constexpr auto parsers_interpreters_make_parser(T&& pred,
+                                                [[maybe_unused]] I&&) {
+  return detail::guard_parser<T, I>{std::forward<T>(pred)};
 }
 
 template <
@@ -287,13 +263,6 @@ constexpr auto parsers_interpreters_make_parser(M&& descriptor,
       std::decay_t<I>,
       decltype(interpreter(std::forward<M>(descriptor).parser()))>{
       descriptor.count(), interpreter(std::forward<M>(descriptor).parser())};
-}
-
-template <class I>
-constexpr auto parsers_interpreters_make_parser(
-    [[maybe_unused]] description::succeed_t,
-    [[maybe_unused]] I&& interpreter) noexcept {
-  return detail::succeed_parser<I>{};
 }
 
 template <class R,

@@ -153,6 +153,8 @@ constexpr static inline eos_t eos{};
 
 template <class T = void>
 struct fail_t : description::fail_t<fail_t<T>> {
+  using base = description::fail_t<fail_t<T>>;
+  using base::operator();
   template <class U, std::enable_if_t<!std::is_same_v<std::decay_t<U>, fail_t>>>
   constexpr inline fail_t(U&& msg) : _message{std::forward<U>(msg)} {}
   [[nodiscard]] constexpr inline const T& message() const noexcept {
@@ -165,6 +167,9 @@ struct fail_t : description::fail_t<fail_t<T>> {
 
 template <>
 struct fail_t<void> : description::fail_t<fail_t<void>> {
+  using base = description::fail_t<fail_t<void>>;
+  using base::operator();
+
   template <class M>
   constexpr inline fail_t<std::remove_reference_t<std::remove_cv_t<M>>>
   operator()(M&& message) const noexcept {
