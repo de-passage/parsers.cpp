@@ -6,15 +6,20 @@
 
 #include "./streq.hpp"
 
+namespace examples {
+using namespace parsers::description;
+using namespace parsers::dsl;
+constexpr auto _1 = discard{both{many{'a'}, eos}};
+constexpr auto _2 = sequence{discard{'a'}, 'b'};
+constexpr auto _3 = alternative{discard{sequence{"a", eos}},
+                                sequence{discard{'b'}, alternative{'c', 'd'}}};
+}  // namespace examples
+
 TEST(Discard, ShouldWorkUnchangedWithMatcher) {
-  using namespace parsers::description;
-  using namespace parsers::dsl;
-  static_assert(parsers::match_full(discard{both{many{'a'}, eos}}, "aaaaa"));
-  static_assert(parsers::match(sequence{discard{'a'}, 'b'}, "ab"));
-  static_assert(
-      parsers::match(alternative{discard{sequence{"a", eos}},
-                                 sequence{discard{'b'}, alternative{'c', 'd'}}},
-                     "a"));
+  using namespace examples;
+  static_assert(parsers::match_full(_1, "aaaaa"));
+  static_assert(parsers::match(_2, "ab"));
+  static_assert(parsers::match(_3, "a"));
 }
 
 template <class P>
@@ -23,10 +28,27 @@ constexpr std::string_view string(const P& p) noexcept {
 }
 
 TEST(Discard, ShouldWorkUnchangedWithRange) {
-  using namespace parsers::description;
-  using namespace parsers::dsl;
-  constexpr auto p1 =
-      parsers::parse_range(discard{both{many{'a'}, 'b'}}, "aaabbc");
+  using namespace examples;
+  constexpr auto p1f = parsers::parse_range(_1, "aaabbc");
+  static_assert(!p1f.has_value());
+  constexpr auto p1 = parsers::parse_range(_1, "aaa");
   static_assert(p1.has_value());
-  static_assert(streq(string(p1.value()), "aaab"));
+  static_assert(streq(string(p1.value()), "aaa"));
+  constexpr auto p2 = parsers::parse_range(_2, "ab");
+  static_assert(p2.has_value());
+  static_assert(streq(string(p1.value()), "ab"));
+}
+
+TEST(Discard, ShouldDiscardValuesWithObjectParser) {
+  using namespace examples;
+  constexpr auto p1f = parsers::parse(_1, "aaaabc");
+  static_assert(!p1f.has_value());
+  constexpr auto p1 = parsers::parse(_1, "aaa");
+  static_assert(p1.has_value());
+  static_assert(
+      std::is_same_v<std::decay_t<decltype(p1.value())>, parsers::empty>);
+  constexpr auto p2 = parsers::parse(_2, "ab");
+  static_assert(p2.has_value());
+  static_assert(std::is_same_v<std::decay_t<decltype(p2.value())>, char>);
+  static_assert(p2.value() == 'b');
 }

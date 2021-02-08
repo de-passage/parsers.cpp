@@ -77,8 +77,9 @@ struct range_parser {
     return value;
   }
 
-  template <class I, class J>
-  constexpr static inline auto modify(std::optional<I>&& opt,
+  template <class D, class I, class J>
+  constexpr static inline auto modify([[maybe_unused]] type_t<D>,
+                                      std::optional<I>&& opt,
                                       I begin,
                                       [[maybe_unused]] J end) noexcept
       -> result_t<I> {

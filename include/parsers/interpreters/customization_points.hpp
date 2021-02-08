@@ -212,14 +212,16 @@ struct alternative_parser {
   }
 };
 
-template <class T, class P, class A, class B, class = void>
+template <class D, class T, class P, class A, class B, class = void>
 struct has_modify : std::false_type {};
-template <class T, class P, class A, class B>
-struct has_modify<T,
+template <class D, class T, class P, class A, class B>
+struct has_modify<D,
+                  T,
                   P,
                   A,
                   B,
                   std::void_t<decltype(T::modify(
+                      type<D>,
                       std::declval<P>()(std::declval<A>(), std::declval<B>()),
                       std::declval<A>(),
                       std::declval<B>()))>> : std::true_type {};
@@ -230,8 +232,8 @@ struct modifier_parser {
   template <class ItB, class ItE>
   constexpr auto operator()(ItB begin, ItE end) const noexcept
       -> detail::result_t<I, ItB, D> {
-    if constexpr (has_modify<I, P, ItB, ItE>::value) {
-      return I::modify(parser(begin, end), begin, end);
+    if constexpr (has_modify<D, I, P, ItB, ItE>::value) {
+      return I::modify(type<D>, parser(begin, end), begin, end);
     }
     else {
       return parser(begin, end);
