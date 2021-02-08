@@ -212,6 +212,15 @@ struct alternative_parser {
   }
 };
 
+template <class P>
+struct modifier_parser {
+  P parser;
+  template <class ItB, class ItE>
+  constexpr auto operator()(ItB begin, ItE end) const noexcept {
+    return parser(begin, end);
+  }
+};
+
 }  // namespace detail
 
 template <class T,
@@ -271,6 +280,15 @@ constexpr auto parsers_interpreters_make_parser(
     [[maybe_unused]] I&& interpreter) noexcept {
   return detail::alternative_parser<std::decay_t<A>, std::decay_t<I>>{
       std::forward<A>(descriptor), std::forward<I>(interpreter)};
+}
+template <
+    class D,
+    class J,
+    std::enable_if_t<description::is_modifier_v<std::decay_t<D>>, int> = 0>
+constexpr auto parsers_interpreters_make_parser(D&& descriptor,
+                                                J&& ignore) noexcept {
+  return detail::modifier_parser<decltype(descriptor.get_p())>{
+      std::forward<D>(descriptor).get_p()};
 }
 
 }  // namespace parsers::customization_points

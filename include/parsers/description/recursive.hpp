@@ -1,4 +1,5 @@
 #ifndef GUARD_PARSERS_DESCRIPTION_RECURSIVE_HPP
+#define GUARD_PARSERS_DESCRIPTION_RECURSIVE_HPP
 
 #include "../utility.hpp"
 #include "./containers.hpp"
