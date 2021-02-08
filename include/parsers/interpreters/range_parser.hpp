@@ -76,6 +76,19 @@ struct range_parser {
                                            I&& value) noexcept {
     return value;
   }
+
+  template <class I, class J>
+  constexpr static inline auto modify(std::optional<I>&& opt,
+                                      I begin,
+                                      [[maybe_unused]] J end) noexcept
+      -> result_t<I> {
+    if (!opt.has_value()) {
+      return dpsg::failure(begin);
+    }
+    else {
+      return dpsg::success(begin, *opt);
+    }
+  }
 };
 
 }  // namespace parsers::interpreters

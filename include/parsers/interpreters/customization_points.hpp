@@ -212,12 +212,30 @@ struct alternative_parser {
   }
 };
 
-template <class P>
+template <class T, class P, class A, class B, class = void>
+struct has_modify : std::false_type {};
+template <class T, class P, class A, class B>
+struct has_modify<T,
+                  P,
+                  A,
+                  B,
+                  std::void_t<decltype(T::modify(
+                      std::declval<P>()(std::declval<A>(), std::declval<B>()),
+                      std::declval<A>(),
+                      std::declval<B>()))>> : std::true_type {};
+
+template <class P, class I, class D>
 struct modifier_parser {
   P parser;
   template <class ItB, class ItE>
-  constexpr auto operator()(ItB begin, ItE end) const noexcept {
-    return parser(begin, end);
+  constexpr auto operator()(ItB begin, ItE end) const noexcept
+      -> detail::result_t<I, ItB, D> {
+    if constexpr (has_modify<I, P, ItB, ItE>::value) {
+      return I::modify(parser(begin, end), begin, end);
+    }
+    else {
+      return parser(begin, end);
+    }
   }
 };
 
@@ -285,9 +303,12 @@ template <
     class D,
     class J,
     std::enable_if_t<description::is_modifier_v<std::decay_t<D>>, int> = 0>
-constexpr auto parsers_interpreters_make_parser(D&& descriptor,
-                                                J&& ignore) noexcept {
-  return detail::modifier_parser<decltype(descriptor.get_p())>{
+constexpr auto parsers_interpreters_make_parser(
+    D&& descriptor,
+    [[maybe_unused]] J&& ignore) noexcept {
+  return detail::modifier_parser<decltype(descriptor.get_p()),
+                                 std::decay_t<J>,
+                                 std::decay_t<D>>{
       std::forward<D>(descriptor).get_p()};
 }
 
