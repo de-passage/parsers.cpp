@@ -14,6 +14,41 @@ namespace parsers::interpreters {
 namespace detail {
 using namespace ::parsers::detail;
 
+template <std::size_t S, class... Args>
+struct index_sequence_for_non_empty {
+  using type = typename index_sequence_for_non_empty<0,
+                                                     std::index_sequence<>,
+                                                     Args...>::type;
+};
+
+template <std::size_t S, std::size_t... Ss, class A, class... Args>
+struct index_sequence_for_non_empty<S, std::index_sequence<Ss...>, A, Args...> {
+  using type =
+      typename index_sequence_for_non_empty<S + 1,
+                                            std::index_sequence<Ss..., S>,
+                                            Args...>::type;
+};
+
+template <std::size_t S, std::size_t... Ss, class... Args>
+struct index_sequence_for_non_empty<S,
+                                    std::index_sequence<Ss...>,
+                                    parsers::empty,
+                                    Args...> {
+  using type = typename index_sequence_for_non_empty<S + 1,
+                                                     std::index_sequence<Ss...>,
+                                                     Args...>::type;
+};
+
+template <std::size_t S, std::size_t... Ss>
+struct index_sequence_for_non_empty<S, std::index_sequence<Ss...>> {
+  using type = std::index_sequence<Ss...>;
+};
+
+static_assert(
+    std::is_same_v<
+        typename index_sequence_for_non_empty<0, parsers::empty, char>::type,
+        std::index_sequence<1>>);
+
 template <class... Args>
 struct collapse_tuple_arguments;
 template <class A, class... Args, class... Args2>
@@ -217,25 +252,42 @@ struct object_parser {
     return std::forward<R>(r).has_value();
   }
 
-  template <class S>
-  constexpr static inline auto sequence([[maybe_unused]] type_t<S>) noexcept {
-    return dpsg::success(parsers::empty{});
+  template <class R, class... Args>
+  constexpr static inline auto build_sequence_result(
+      [[maybe_unused]] std::index_sequence<>,
+      [[maybe_unused]] std::tuple<Args...>&& args) noexcept {
+    return parsers::empty{};
   }
 
-  template <class S, class A>
-  constexpr static inline auto sequence([[maybe_unused]] type_t<S>,
-                                        A&& arg) noexcept {
-    return arg;
+  template <class R, std::size_t S, class... Args>
+  constexpr static inline auto build_sequence_result(
+      [[maybe_unused]] std::index_sequence<S>,
+      std::tuple<Args...>&& args) noexcept {
+    return std::get<S>(std::move(args));
   }
 
-  template <class S, class A, class... Args>
+  template <class R,
+            std::size_t... Ss,
+            class... Args,
+            std::enable_if_t<(sizeof...(Args) > 1), int> = 0>
+  constexpr static inline R build_sequence_result(
+      std::index_sequence<Ss...>,
+      std::tuple<Args...>&& args) noexcept {
+    return R{std::get<Ss>(std::move(args))...};
+  }
+
+  template <class S, class... Args>
   constexpr static inline auto sequence([[maybe_unused]] type_t<S>,
-                                        A&& arg,
                                         Args&&... args) noexcept {
+    const auto last_iterator = std::get<0>(detail::last_of(args...).value());
     return dpsg::success(
-        std::get<0>(arg.value()),
-        object_t<decltype(detail::last_of(args...).value().first), S>{
-            std::get<1>(std::forward<Args>(args).value())...});
+        std::move(last_iterator),
+        object_parser::build_sequence_result<
+            object_t<decltype(detail::last_of(args...).value().first), S>>(
+            typename detail::index_sequence_for_non_empty<
+                0,
+                std::decay_t<decltype(std::get<1>(args.value()))>...>::type{},
+            std::tuple{std::get<1>(std::forward<Args>(args).value())...}));
   }
 
   template <std::size_t S, class D, class T>
