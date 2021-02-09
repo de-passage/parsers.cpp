@@ -51,4 +51,11 @@ TEST(Discard, ShouldDiscardValuesWithObjectParser) {
   static_assert(p2.has_value());
   static_assert(std::is_same_v<std::decay_t<decltype(p2.value())>, char>);
   static_assert(p2.value() == 'b');
+
+  constexpr auto p3 = parsers::parse(_3, "bcd");
+  static_assert(p3.has_value());
+  static_assert(
+      std::is_same_v<std::decay_t<decltype(p3.value())>,
+                     std::variant<parsers::empty, std::variant<char, char>>>);
+  static_assert(p3.value().index() == 1);
 }

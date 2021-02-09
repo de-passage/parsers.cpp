@@ -44,10 +44,9 @@ struct index_sequence_for_non_empty<S, std::index_sequence<Ss...>> {
   using type = std::index_sequence<Ss...>;
 };
 
-static_assert(
-    std::is_same_v<
-        typename index_sequence_for_non_empty<0, parsers::empty, char>::type,
-        std::index_sequence<1>>);
+template <class... Args>
+using index_sequence_for_non_empty_t =
+    typename index_sequence_for_non_empty<0, Args...>::type;
 
 template <class... Args>
 struct collapse_tuple_arguments;
@@ -280,13 +279,14 @@ struct object_parser {
   constexpr static inline auto sequence([[maybe_unused]] type_t<S>,
                                         Args&&... args) noexcept {
     const auto last_iterator = std::get<0>(detail::last_of(args...).value());
+    using result_type =
+        object_t<decltype(detail::last_of(args...).value().first), S>;
+    using index_sequence = detail::index_sequence_for_non_empty_t<
+        std::decay_t<decltype(std::get<1>(args.value()))>...>;
     return dpsg::success(
         std::move(last_iterator),
-        object_parser::build_sequence_result<
-            object_t<decltype(detail::last_of(args...).value().first), S>>(
-            typename detail::index_sequence_for_non_empty<
-                0,
-                std::decay_t<decltype(std::get<1>(args.value()))>...>::type{},
+        object_parser::build_sequence_result<result_type>(
+            index_sequence{},
             std::tuple{std::get<1>(std::forward<Args>(args).value())...}));
   }
 
@@ -308,9 +308,7 @@ struct object_parser {
     if (r.has_value()) {
       return dpsg::success(std::pair<T, empty>{*r, {}});
     }
-    else {
-      return dpsg::failure(begin);
-    }
+    return dpsg::failure(begin);
   }
 };
 }  // namespace parsers::interpreters
