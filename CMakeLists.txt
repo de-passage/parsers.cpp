@@ -55,6 +55,7 @@ set (EXAMPLE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/examples/)
 set (LIBRARY_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/)
 
 set (TEST_SRC_FILES 
+  build.cpp
   discard.cpp
   ascii.cpp
   parsers.cpp 

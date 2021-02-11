@@ -306,7 +306,7 @@ struct object_parser {
       IB begin,
       [[maybe_unused]] IE end) noexcept {
     if (r.has_value()) {
-      return dpsg::success(std::pair<T, empty>{*r, {}});
+      return dpsg::success(*r, empty{});
     }
     return dpsg::failure(begin);
   }

@@ -65,6 +65,17 @@ struct matcher {
                                            I&& input) noexcept {
     return input;
   }
+
+  template <class D, class IB, class IE, class E>
+  constexpr static inline auto modify([[maybe_unused]] type_t<D>,
+                                      dpsg::result<std::pair<IB, IB>, E>&& r,
+                                      [[maybe_unused]] IB beg,
+                                      [[maybe_unused]] IE end) noexcept {
+    if (r.has_value()) {
+      return result_t<IB>{r.value().second};
+    }
+    return result_t<IB>{};
+  }
 };
 
 }  // namespace parsers::interpreters
