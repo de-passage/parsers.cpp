@@ -77,6 +77,25 @@ struct matcher {
     }
     return result_t<IB>{};
   }
+
+  template <class M,
+            class IB,
+            class IE,
+            class E,
+            class T,
+            class D = std::decay_t<M>,
+            std::enable_if_t<!std::is_same_v<std::decay_t<IB>, std::decay_t<T>>,
+                             int> = 0>
+  constexpr static inline auto modify([[maybe_unused]] type_t<D>,
+                                      [[maybe_unused]] M&&,
+                                      dpsg::result<std::pair<IB, T>, E>&& r,
+                                      [[maybe_unused]] IB beg,
+                                      [[maybe_unused]] IE end) noexcept {
+    if (r.has_value()) {
+      return result_t<IB>{std::get<0>(std::move(r).value())};
+    }
+    return result_t<IB>{};
+  }
 };
 
 }  // namespace parsers::interpreters

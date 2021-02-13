@@ -26,8 +26,8 @@ struct map
       std::invoke_result_t<T, interpreters::object_parser::result_t<I, D>>;
 
   template <class U>
-  constexpr auto operator()(U&& pair) noexcept {
-    return modifier(std::get<1>(std::forward<T>(pair)));
+  constexpr auto operator()(U&& obj) const noexcept {
+    return modifier(std::forward<U>(obj));
   }
 };
 template <class D, class T>

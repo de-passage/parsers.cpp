@@ -92,6 +92,25 @@ struct range_parser {
       return dpsg::success(begin, *opt);
     }
   }
+
+  template <class M,
+            class I,
+            class J,
+            class T,
+            class D = std::decay_t<M>,
+            std::enable_if_t<!std::is_same_v<std::decay_t<T>, std::decay_t<I>>,
+                             int> = 0>
+  constexpr static inline auto modify([[maybe_unused]] type_t<D>,
+                                      [[maybe_unused]] M&&,
+                                      dpsg::result<std::pair<I, T>, I>&& r,
+                                      I begin,
+                                      [[maybe_unused]] J end) noexcept
+      -> result_t<I> {
+    return std::move(r).map([begin = std::move(begin)](auto&& p) {
+      return std::pair{std::move(begin),
+                       std::get<0>(std::forward<decltype(p)>(p))};
+    });
+  }
 };
 
 }  // namespace parsers::interpreters

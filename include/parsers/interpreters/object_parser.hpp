@@ -325,6 +325,25 @@ struct object_parser {
           fst, modifier(fst, std::get<1>(std::forward<decltype(pair)>(pair))));
     });
   }
+
+  template <class M,
+            class IB,
+            class IE,
+            class T,
+            class D = std::decay_t<M>,
+            std::enable_if_t<!std::is_same_v<IB, T>, int> = 0>
+  constexpr static inline result_t<IB, D> modify(
+      [[maybe_unused]] type_t<D>,
+      M&& modifier,
+      dpsg::result<std::pair<IB, T>, IB>&& r,
+      [[maybe_unused]] IB begin,
+      [[maybe_unused]] IE end) noexcept {
+    return std::move(r).map([&modifier](auto&& pair) {
+      return std::pair{
+          std::get<0>(std::forward<decltype(pair)>(pair)),
+          modifier(std::get<1>(std::forward<decltype(pair)>(pair)))};
+    });
+  }
 };
 }  // namespace parsers::interpreters
 
