@@ -14,16 +14,23 @@ constexpr bool streq(L&& str1, R&& str2) noexcept {
   while (true) {
     bool endof1 = (beg1 == end1 || *beg1 == '\0');
     bool endof2 = (beg2 == end2 || *beg2 == '\0');
-    if (endof1 != endof2) {
-      return false;
-    }
-    if (endof1 == endof2) {
+    if (endof1 && endof2) {
       return true;
+    }
+    if (endof1 || endof2) {
+      return false;
     }
     if (*beg1 != *beg2) {
       return false;
     }
+    ++beg1;
+    ++beg2;
   }
 }
+
+static_assert(!streq("test", "tes"));
+static_assert(!streq("1234", "4444"));
+static_assert(streq("12345", "12345"));
+static_assert(!streq("tes", "test"));
 
 #endif  // TESTS_STREQ_HPP
