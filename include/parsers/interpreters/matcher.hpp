@@ -66,13 +66,14 @@ struct matcher {
     return input;
   }
 
-  template <class D, class IB, class IE, class E>
+  template <class M, class IB, class IE, class E, class D = std::decay_t<M>>
   constexpr static inline auto modify([[maybe_unused]] type_t<D>,
+                                      [[maybe_unused]] M&&,
                                       dpsg::result<std::pair<IB, IB>, E>&& r,
                                       [[maybe_unused]] IB beg,
                                       [[maybe_unused]] IE end) noexcept {
     if (r.has_value()) {
-      return result_t<IB>{r.value().second};
+      return result_t<IB>{std::get<1>(std::move(r).value())};
     }
     return result_t<IB>{};
   }

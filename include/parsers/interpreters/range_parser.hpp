@@ -4,6 +4,7 @@
 #include "../description.hpp"
 #include "../utility.hpp"
 
+#include <optional>
 #include <type_traits>
 
 namespace parsers::interpreters {
@@ -77,8 +78,9 @@ struct range_parser {
     return value;
   }
 
-  template <class D, class I, class J>
+  template <class M, class I, class J, class D = std::decay_t<M>>
   constexpr static inline auto modify([[maybe_unused]] type_t<D>,
+                                      [[maybe_unused]] M&&,
                                       std::optional<I>&& opt,
                                       I begin,
                                       [[maybe_unused]] J end) noexcept

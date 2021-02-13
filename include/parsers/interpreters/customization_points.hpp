@@ -222,6 +222,7 @@ struct has_modify<D,
                   B,
                   std::void_t<decltype(T::modify(
                       type<D>,
+                      std::declval<D>(),
                       std::declval<P>()(std::declval<A>(), std::declval<B>()),
                       std::declval<A>(),
                       std::declval<B>()))>> : std::true_type {};
@@ -229,11 +230,12 @@ struct has_modify<D,
 template <class P, class I, class D>
 struct modifier_parser {
   P parser;
+  D modifier;
   template <class ItB, class ItE>
   constexpr auto operator()(ItB begin, ItE end) const noexcept
       -> detail::result_t<I, ItB, D> {
     if constexpr (has_modify<D, I, P, ItB, ItE>::value) {
-      return I::modify(type<D>, parser(begin, end), begin, end);
+      return I::modify(type<D>, modifier, parser(begin, end), begin, end);
     }
     else {
       return parser(begin, end);
@@ -308,10 +310,11 @@ template <
 constexpr auto parsers_interpreters_make_parser(
     D&& descriptor,
     [[maybe_unused]] J&& ignore) noexcept {
+  const auto parser = descriptor.get_p();
   return detail::modifier_parser<decltype(descriptor.get_p()),
                                  std::decay_t<J>,
-                                 std::decay_t<D>>{
-      std::forward<D>(descriptor).get_p()};
+                                 std::decay_t<D>>{parser,
+                                                  std::forward<D>(descriptor)};
 }
 
 }  // namespace parsers::customization_points

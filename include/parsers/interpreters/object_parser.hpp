@@ -200,7 +200,7 @@ struct object_parser {
 
   template <class M, class I>
   struct object<M, I, std::enable_if_t<description::is_modifier_v<M>>> {
-    using type = empty;
+    using type = typename M::template result_t<I>;
   };
 
   template <class I, class T>
@@ -299,9 +299,10 @@ struct object_parser {
             std::in_place_index<S>, std::get<1>(std::forward<T>(t).value())});
   }
 
-  template <class D, class IB, class IE, class T>
+  template <class M, class IB, class IE, class T, class D = std::decay_t<M>>
   constexpr static inline result_t<IB, D> modify(
       [[maybe_unused]] type_t<D>,
+      [[maybe_unused]] M&&,
       std::optional<T>&& r,
       IB begin,
       [[maybe_unused]] IE end) noexcept {
@@ -309,6 +310,20 @@ struct object_parser {
       return dpsg::success(*r, empty{});
     }
     return dpsg::failure(begin);
+  }
+
+  template <class M, class IB, class IE, class D = std::decay_t<M>>
+  constexpr static inline result_t<IB, D> modify(
+      [[maybe_unused]] type_t<D>,
+      M&& modifier,
+      dpsg::result<std::pair<IB, IB>, IB>&& r,
+      [[maybe_unused]] IB begin,
+      [[maybe_unused]] IE end) noexcept {
+    return std::move(r).then([&modifier](auto&& pair) -> result_t<IB, D> {
+      const auto fst = std::get<0>(pair);
+      return dpsg::success(
+          fst, modifier(fst, std::get<1>(std::forward<decltype(pair)>(pair))));
+    });
   }
 };
 }  // namespace parsers::interpreters
