@@ -250,7 +250,9 @@ template <class T,
           std::enable_if_t<description::is_satisfiable_predicate_v<T>, int> = 0>
 constexpr auto parsers_interpreters_make_parser(T&& pred,
                                                 [[maybe_unused]] I&&) {
-  return detail::predicate_parser<T, I>{std::forward<T>(pred)};
+  return detail::predicate_parser<detail::remove_cvref_t<T>,
+                                  detail::remove_cvref_t<I>>{
+      std::forward<T>(pred)};
 }
 
 template <class T,

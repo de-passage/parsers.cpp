@@ -21,7 +21,8 @@ struct modifier : container<T> {
                                  !std::is_same_v<std::decay_t<U>, modifier>,
                              int> = 0>
   constexpr explicit modifier(U&& modifier) noexcept
-      : base{std::forward<U>(modifier)} {}
+      : base{std::forward<U>(modifier)},
+        _parser(_interpreter(base::parser())) {}
 
   friend constexpr std::true_type is_modifier_f(const modifier&) noexcept;
 
@@ -43,7 +44,7 @@ struct modifier : container<T> {
   interpreter_t _interpreter;
   using _parser_t =
       decltype(std::declval<interpreter_t>()(std::declval<parser_t>()));
-  _parser_t _parser{_interpreter(base::parser())};
+  _parser_t _parser;
 
  public:
   constexpr _parser_t get_p() const noexcept { return _parser; }

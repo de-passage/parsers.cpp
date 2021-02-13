@@ -58,6 +58,7 @@ set (TEST_SRC_FILES
   build.cpp
   discard.cpp
   ascii.cpp
+  map.cpp
   parsers.cpp 
   matcher.cpp 
   dsl.cpp 
