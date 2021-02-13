@@ -23,7 +23,7 @@ struct map
 
   template <class I>
   using result_t =
-      std::invoke_result_t<T, interpreters::object_parser::result_t<I, D>>;
+      std::invoke_result_t<T, interpreters::object_parser::object_t<I, D>>;
 
   template <class U>
   constexpr auto operator()(U&& obj) const noexcept {

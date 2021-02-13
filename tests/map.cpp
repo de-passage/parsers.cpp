@@ -17,8 +17,8 @@ struct {
 } constexpr to_int;
 struct {
   template <class... Ts>
-  constexpr int operator()(std::tuple<Ts...>&& tpl) const noexcept {
-    static_assert(std::conjunction_v<std::is_convertible_v<Ts, int>...>);
+  constexpr int operator()(const std::tuple<Ts...>& tpl) const noexcept {
+    static_assert(std::conjunction_v<std::is_convertible<Ts, int>...>);
     return _add(std::move(tpl), std::index_sequence_for<Ts...>{});
   }
 
@@ -83,7 +83,11 @@ TEST(Map, ObjectMapsValuesCorrectly) {
     ASSERT_EQ(r2[i], i + 1);
   }
 
-  constexpr auto p3 = parsers::parse_range(both{_2, eos}, "4444");
+  constexpr auto p3 = parsers::parse(_2, "4444");
   static_assert(p3.has_value());
-  static_assert(check(p3.value(), "4444"));
+  static_assert(p3.value() == 16);
+
+  constexpr auto p4 = parsers::parse(both{_2, discard{eos}}, "4444");
+  static_assert(p4.has_value());
+  static_assert(p4.value() == 16);
 }
