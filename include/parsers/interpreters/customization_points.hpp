@@ -9,31 +9,33 @@ namespace detail {
 using namespace ::parsers::detail;
 
 template <class I, class R, class T>
-using result_t = typename std::decay_t<I>::template result_t<std::decay_t<R>,
-                                                             std::decay_t<T>>;
+using result_t =
+    typename std::decay_t<I>::template result_t<detail::remove_cvref_t<R>,
+                                                detail::remove_cvref_t<T>>;
 
 template <class I, class T, class... Args>
 [[nodiscard]] constexpr auto success(Args&&... args) noexcept {
-  return std::decay_t<I>::success(type<std::decay_t<T>>,
+  return std::decay_t<I>::success(type<detail::remove_cvref_t<T>>,
                                   std::forward<Args>(args)...);
 }
 
 template <class I, class T, class... Args>
 [[nodiscard]] constexpr auto failure(Args&&... args) noexcept {
-  return std::decay_t<I>::failure(type<std::decay_t<T>>,
+  return std::decay_t<I>::failure(type<detail::remove_cvref_t<T>>,
                                   std::forward<Args>(args)...);
 }
 
 template <class I, class T, class... Args>
 [[nodiscard]] constexpr auto combine(Args&&... args) noexcept {
-  return std::decay_t<I>::combine(type<std::decay_t<T>>,
+  return std::decay_t<I>::combine(type<detail::remove_cvref_t<T>>,
                                   std::forward<Args>(args)...);
 }
 
 template <class I, class T, class U, class V>
 [[nodiscard]] constexpr auto init(U&& beg, V&& end) noexcept {
-  return std::decay_t<I>::init(
-      type<std::decay_t<T>>, std::forward<U>(beg), std::forward<V>(end));
+  return std::decay_t<I>::init(type<detail::remove_cvref_t<T>>,
+                               std::forward<U>(beg),
+                               std::forward<V>(end));
 }
 
 template <class I, class R>
@@ -48,13 +50,13 @@ template <class I, class R>
 
 template <class I, class T, class... Args>
 [[nodiscard]] constexpr auto sequence(Args&&... args) noexcept {
-  return std::decay_t<I>::sequence(type<std::decay_t<T>>,
+  return std::decay_t<I>::sequence(type<detail::remove_cvref_t<T>>,
                                    std::forward<Args>(args)...);
 }
 template <class I, class T, std::size_t S, class... Args>
 [[nodiscard]] constexpr auto alternative(Args&&... args) noexcept {
-  return std::decay_t<I>::template alternative<S>(type<std::decay_t<T>>,
-                                                  std::forward<Args>(args)...);
+  return std::decay_t<I>::template alternative<S>(
+      type<detail::remove_cvref_t<T>>, std::forward<Args>(args)...);
 }
 
 template <class D, class I>
@@ -260,7 +262,8 @@ template <class T,
           std::enable_if_t<description::is_guard_v<T>, int> = 0>
 constexpr auto parsers_interpreters_make_parser(T&& pred,
                                                 [[maybe_unused]] I&&) {
-  return detail::guard_parser<T, I>{std::forward<T>(pred)};
+  return detail::guard_parser<detail::remove_cvref_t<T>,
+                              detail::remove_cvref_t<I>>{std::forward<T>(pred)};
 }
 
 template <
@@ -270,8 +273,8 @@ template <
 constexpr auto parsers_interpreters_make_parser(M&& descriptor,
                                                 I&& interpreter) noexcept {
   return detail::dynamic_range_parser<
-      std::decay_t<M>,
-      std::decay_t<I>,
+      detail::remove_cvref_t<M>,
+      detail::remove_cvref_t<I>,
       decltype(interpreter(std::forward<M>(descriptor).parser()))>{
       descriptor.count(), interpreter(std::forward<M>(descriptor).parser())};
 }
@@ -282,7 +285,7 @@ template <class R,
 constexpr auto parsers_interpreters_make_parser(R&& descriptor,
                                                 I&& interpreter) noexcept {
   return detail::parser_indirection_t<typename std::decay_t<R>::parser_t,
-                                      std::decay_t<I>>{
+                                      detail::remove_cvref_t<I>>{
       std::forward<R>(descriptor).parser(), std::forward<I>(interpreter)};
 }
 
@@ -292,7 +295,7 @@ template <class S,
 constexpr auto parsers_interpreters_make_parser(
     S&& descriptor,
     [[maybe_unused]] I&& interpreter) noexcept {
-  return detail::sequence_parser<std::decay_t<S>, std::decay_t<I>>{
+  return detail::sequence_parser<detail::remove_cvref_t<S>, std::decay_t<I>>{
       std::forward<S>(descriptor), std::forward<I>(interpreter)};
 }
 
@@ -302,7 +305,7 @@ template <class A,
 constexpr auto parsers_interpreters_make_parser(
     A&& descriptor,
     [[maybe_unused]] I&& interpreter) noexcept {
-  return detail::alternative_parser<std::decay_t<A>, std::decay_t<I>>{
+  return detail::alternative_parser<detail::remove_cvref_t<A>, std::decay_t<I>>{
       std::forward<A>(descriptor), std::forward<I>(interpreter)};
 }
 template <
@@ -315,8 +318,8 @@ constexpr auto parsers_interpreters_make_parser(
   const auto parser = descriptor.get_p();
   return detail::modifier_parser<decltype(descriptor.get_p()),
                                  std::decay_t<J>,
-                                 std::decay_t<D>>{parser,
-                                                  std::forward<D>(descriptor)};
+                                 detail::remove_cvref_t<D>>{
+      parser, std::forward<D>(descriptor)};
 }
 
 }  // namespace parsers::customization_points
