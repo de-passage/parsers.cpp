@@ -36,7 +36,7 @@ TEST(Build, MatcherShouldWorkUnchanged) {
   static_assert(parsers::match(_2, "astring"));
   static_assert(parsers::match(_2, "bstring"));
   static_assert(!parsers::match(_2, "cstring"));
-  // static_assert(parsers::match(both{many{_2}, eos}, "abastring"));
+  static_assert(parsers::match(both{many{_2}, eos}, "acbstring"));
 }
 
 template <class T, class U>
@@ -66,4 +66,8 @@ TEST(Build, ObjectParserShouldReturnObjectFromRange) {
   constexpr auto p3 = parsers::parse(_2, "astring rest");
   static_assert(p3.has_value());
   static_assert(streq(p3.value(), "astring"));
+  constexpr auto p4 =
+      parsers::parse(build{both{many{_2}, eos}, length}, "acbstring");
+  static_assert(p4.has_value());
+  static_assert(p4.value() == 10);
 }
