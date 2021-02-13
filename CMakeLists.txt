@@ -56,6 +56,7 @@ set (LIBRARY_INCLUDE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/)
 
 set (TEST_SRC_FILES 
   build.cpp
+  bind.cpp
   discard.cpp
   ascii.cpp
   map.cpp
