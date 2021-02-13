@@ -1,5 +1,6 @@
 #include <parsers/parsers.hpp>
 
+#include <parsers/description/discard.hpp>
 #include <parsers/description/map.hpp>
 #include <type_traits>
 
@@ -64,5 +65,25 @@ TEST(Map, RangeShouldWorkUnchanged) {
 
   constexpr auto p4 = parsers::parse_range(both{_2, eos}, "4444");
   static_assert(p4.has_value());
-  static_assert(check(p2.value(), "4444"));
+  static_assert(check(p4.value(), "4444"));
+}
+
+TEST(Map, ObjectMapsValuesCorrectly) {
+  using namespace example;
+
+  constexpr auto p1 = parsers::parse(_1, "1");
+  static_assert(p1.has_value());
+  static_assert(p1.value() == 1);
+
+  auto p2 = parsers::parse(both{many{_1}, discard{eos}}, "1234");
+  ASSERT_TRUE(p2.has_value());
+  auto r2 = std::move(p2).value();
+  ASSERT_EQ(r2.size(), 4);
+  for (int i = 0; i < 4; ++i) {
+    ASSERT_EQ(r2[i], i + 1);
+  }
+
+  constexpr auto p3 = parsers::parse_range(both{_2, eos}, "4444");
+  static_assert(p3.has_value());
+  static_assert(check(p3.value(), "4444"));
 }
