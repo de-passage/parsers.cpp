@@ -320,9 +320,9 @@ struct object_parser {
       [[maybe_unused]] IB begin,
       [[maybe_unused]] IE end) noexcept {
     return std::move(r).then([&modifier](auto&& pair) -> result_t<IB, D> {
-      const auto fst = std::get<0>(pair);
+      const auto snd = std::get<1>(pair);
       return dpsg::success(
-          fst, modifier(fst, std::get<1>(std::forward<decltype(pair)>(pair))));
+          snd, modifier(std::get<0>(std::forward<decltype(pair)>(pair)), snd));
     });
   }
 

@@ -98,7 +98,7 @@ struct matcher {
   }
 
   template <class R>
-  constexpr static inline empty value(R&& result) noexcept {
+  constexpr static inline empty value([[maybe_unused]] R&& result) noexcept {
     return empty{};
   }
 };

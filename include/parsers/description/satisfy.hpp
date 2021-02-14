@@ -114,6 +114,24 @@ struct any_t : satisfy_character<any_t> {
   }
 };
 
+template <class F>
+struct character_class : satisfy_character<character_class<F>> {
+  template <class T,
+            std::enable_if_t<!std::is_same_v<std::decay_t<T>, character_class>,
+                             int> = 0>
+  constexpr explicit character_class(T&& fun) noexcept
+      : function{std::forward<T>(fun)} {}
+
+  template <class T>
+  [[nodiscard]] constexpr bool operator()(T&& c) const noexcept {
+    return function(std::forward<T>(c));
+  }
+
+  F function;
+};
+template <class F>
+character_class(F&&) -> character_class<detail::remove_cvref_t<F>>;
+
 }  // namespace parsers::description
 
 #endif  // GUARD_PARSERS_DESCRIPTION_SATISFY_HPP
