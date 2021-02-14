@@ -66,11 +66,10 @@ struct reversed {
   }
 } constexpr reversed;
 
-constexpr auto _1 = bind{map{ascii::digit, to_int}, n_char{'a'}};
-constexpr auto _2 = bind{any, next_char};
-constexpr auto _3 =
-    bind{both{build{many{ascii::alpha}, to_string}, discard{ascii::space}},
-         reversed};
+constexpr auto _1 = ascii::digit / to_int >>= n_char{'a'};
+constexpr auto _2 = any >>= next_char;
+constexpr auto _3 = (many{ascii::alpha} /= to_string) & (~ascii::space) >>=
+    reversed;
 
 }  // namespace example
 
@@ -92,3 +91,5 @@ TEST(Bind, ShouldWorkUnchangedWithMatcher) {
   static_assert(parsers::match(_3, "palindrome emordnilap"));
   static_assert(!parsers::match(_3, "fail fail"));
 }
+
+TEST(Bind, ShouldWorkWithRange) {}
