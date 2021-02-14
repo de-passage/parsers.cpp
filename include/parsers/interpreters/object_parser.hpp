@@ -244,17 +244,6 @@ struct object_parser {
     }
     return add;
   }
-
-  template <class R>
-  constexpr static inline auto next_iterator(R&& r) noexcept {
-    return std::forward<R>(r).value().first;
-  }
-
-  template <class R>
-  constexpr static inline bool has_value(R&& r) noexcept {
-    return std::forward<R>(r).has_value();
-  }
-
   template <class R, class... Args>
   constexpr static inline auto build_sequence_result(
       [[maybe_unused]] std::index_sequence<>,
@@ -347,11 +336,6 @@ struct object_parser {
           std::get<0>(std::forward<decltype(pair)>(pair)),
           modifier(std::get<1>(std::forward<decltype(pair)>(pair)))};
     });
-  }
-
-  template <class R>
-  constexpr static inline auto value(R&& result) noexcept {
-    return std::get<1>(std::forward<R>(result).value());
   }
 };
 }  // namespace parsers::interpreters

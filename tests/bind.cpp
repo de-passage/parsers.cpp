@@ -77,11 +77,6 @@ constexpr auto _3 = (many{ascii::alpha} /= to_string) & (~ascii::space) >>=
 
 TEST(Bind, ShouldWorkUnchangedWithMatcher) {
   using namespace example;
-  static_assert(
-      std::is_same_v<decltype(parsers::interpreters::object_parser::value(
-                         _1.interpret()(std::declval<char*>(),
-                                        std::declval<char*>()))),
-                     int>);
 
   static_assert(parsers::match(_1, "3aaa"));
   static_assert(!parsers::match(_1, "3aa"));

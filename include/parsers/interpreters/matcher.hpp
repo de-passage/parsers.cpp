@@ -44,16 +44,6 @@ struct matcher {
     return add;
   }
 
-  template <class R>
-  constexpr static inline auto next_iterator(R&& r) noexcept {
-    return *std::forward<R>(r);
-  }
-
-  template <class R>
-  constexpr static inline bool has_value(R&& r) noexcept {
-    return std::forward<R>(r).has_value();
-  }
-
   template <class S, class... Args>
   constexpr static inline auto sequence([[maybe_unused]] type_t<S> s,
                                         Args&&... args) noexcept {
@@ -95,11 +85,6 @@ struct matcher {
       return result_t<IB>{std::get<0>(std::move(r).value())};
     }
     return result_t<IB>{};
-  }
-
-  template <class R>
-  constexpr static inline empty value([[maybe_unused]] R&& result) noexcept {
-    return empty{};
   }
 };
 

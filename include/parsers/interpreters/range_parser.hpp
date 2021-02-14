@@ -43,26 +43,6 @@ struct range_parser {
     return add;
   }
 
-  template <class R, detail::not_instance_of<R, detail::reference_wrapper> = 0>
-  constexpr static inline auto next_iterator(R&& r) noexcept {
-    return std::forward<R>(r).value().second;
-  }
-
-  template <class R, detail::not_instance_of<R, detail::reference_wrapper> = 0>
-  constexpr static inline bool has_value(R&& r) noexcept {
-    return std::forward<R>(r).has_value();
-  }
-
-  template <class R, detail::instance_of<R, detail::reference_wrapper> = 0>
-  constexpr static inline auto next_iterator(R&& r) noexcept {
-    return std::forward<R>(r)->value().second;
-  }
-
-  template <class R, detail::instance_of<R, detail::reference_wrapper> = 0>
-  constexpr static inline bool has_value(R&& r) noexcept {
-    return std::forward<R>(r)->has_value();
-  }
-
   template <class S, class A, class... Args>
   constexpr static inline auto sequence([[maybe_unused]] type_t<S> s,
                                         A&& a,
@@ -110,11 +90,6 @@ struct range_parser {
       return std::pair{std::move(begin),
                        std::get<0>(std::forward<decltype(p)>(p))};
     });
-  }
-
-  template <class R>
-  constexpr static inline auto value(R&& result) noexcept {
-    return std::forward<R>(result).value();
   }
 };
 

@@ -4,6 +4,8 @@
 #include "../description.hpp"
 #include "../utility.hpp"
 
+#include "../result_traits.hpp"
+
 namespace parsers::customization_points {
 namespace detail {
 using namespace ::parsers::detail;
@@ -38,16 +40,6 @@ template <class I, class T, class U, class V>
                                std::forward<V>(end));
 }
 
-template <class I, class R>
-[[nodiscard]] constexpr auto next_iterator(R&& result) noexcept {
-  return std::decay_t<I>::next_iterator(std::forward<R>(result));
-}
-
-template <class I, class R>
-[[nodiscard]] constexpr auto has_value(R&& result) noexcept {
-  return std::decay_t<I>::has_value(std::forward<R>(result));
-}
-
 template <class I, class T, class... Args>
 [[nodiscard]] constexpr auto sequence(Args&&... args) noexcept {
   return std::decay_t<I>::sequence(type<detail::remove_cvref_t<T>>,
@@ -57,11 +49,6 @@ template <class I, class T, std::size_t S, class... Args>
 [[nodiscard]] constexpr auto alternative(Args&&... args) noexcept {
   return std::decay_t<I>::template alternative<S>(
       type<detail::remove_cvref_t<T>>, std::forward<Args>(args)...);
-}
-
-template <class I, class R>
-[[nodiscard]] constexpr auto value(R&& result) noexcept {
-  return std::decay_t<I>::value(std::forward<R>(result));
 }
 
 template <class D, class I>
@@ -133,13 +120,13 @@ struct dynamic_range_parser {
     auto b = beg;
     while (beg != end) {
       auto r = detail::combine<I, M>(acc, parser(beg, end));
-      if (!detail::has_value<I>(r)) {
+      if (!has_value(r)) {
         if (count >= expected) {
           break;
         }
         return detail::failure<I, M>(b, beg, end);
       }
-      beg = detail::next_iterator<I>(std::move(r));
+      beg = next_iterator(std::move(r));
       ++count;
     }
     return acc;
@@ -157,11 +144,11 @@ constexpr detail::result_t<I, ItB, D> call_sequence(
   if constexpr (S < std::decay_t<D>::sequence_length) {
     auto r = std::forward<I>(interpreter)(
         std::forward<D>(descriptor).template parser<S>())(cur, end);
-    if (detail::has_value<I>(r)) {
+    if (has_value(r)) {
       return call_sequence<S + 1>(std::forward<D>(descriptor),
                                   std::forward<I>(interpreter),
                                   beg,
-                                  detail::next_iterator<I>(r),
+                                  next_iterator(r),
                                   end,
                                   std::forward<Args>(args)...,
                                   std::move(r));
@@ -195,7 +182,7 @@ constexpr detail::result_t<I, ItB, D> call_alternative(
   if constexpr (S < std::decay_t<D>::sequence_length) {
     auto r = std::forward<I>(interpreter)(
         std::forward<D>(descriptor).template parser<S>())(beg, end);
-    if (detail::has_value<I>(r)) {
+    if (has_value(r)) {
       return detail::alternative<I, D, S>(std::move(r));
     }
     return call_alternative<S + 1>(
@@ -255,16 +242,15 @@ struct bind_parser {
   D descriptor;
   I interpreter;
   template <class A, class B>
-  using ret = decltype(descriptor(detail::value<typename D::interpreter_t>(
-      descriptor.interpret()(std::declval<A>(), std::declval<B>()))));
+  using ret = decltype(descriptor(
+      value(descriptor.interpret()(std::declval<A>(), std::declval<B>()))));
   template <class ItB, class ItE>
   constexpr auto operator()(ItB begin, ItE end) const noexcept
       -> detail::result_t<I, ItB, ret<ItB, ItE>> {
     auto r = descriptor.interpret()(begin, end);
-    if (detail::has_value<typename D::interpreter_t>(r)) {
-      auto nparser =
-          interpreter(descriptor(detail::value<typename D::interpreter_t>(r)));
-      return nparser(detail::next_iterator<typename D::interpreter_t>(r), end);
+    if (has_value(r)) {
+      auto nparser = interpreter(descriptor(value(r)));
+      return nparser(next_iterator(r), end);
     }
     return detail::failure<I, ret<ItB, ItE>>(begin, begin, end);
   }
