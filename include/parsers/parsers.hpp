@@ -7,6 +7,8 @@
 
 #include "./interpreters.hpp"
 
+#include "./description/dependent_modifiers.hpp"
+
 #include <iterator>
 #include <string_view>
 #include <type_traits>

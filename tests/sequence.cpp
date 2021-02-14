@@ -54,7 +54,7 @@ TEST(Sequence, CanBeParsedForObjects) {
   static_assert(std::tuple_size<decltype(r1)>::value == 3);
   static_assert(streq(std::get<0>(r1), "Hello"));
   static_assert(std::get<1>(r1).index() == 1);
-  static_assert(streq(std::get<1>(std::get<1>(r1)), "World!"));
+  static_assert(streq(std::get<1>(std::get<1>(r1)), " World!"));
 
   constexpr auto p2 = parse(s, "Hello!");
   static_assert(p2.has_value());

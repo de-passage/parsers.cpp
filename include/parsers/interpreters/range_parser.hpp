@@ -111,6 +111,11 @@ struct range_parser {
                        std::get<0>(std::forward<decltype(p)>(p))};
     });
   }
+
+  template <class R>
+  constexpr static inline auto value(R&& result) noexcept {
+    return std::forward<R>(result).value();
+  }
 };
 
 }  // namespace parsers::interpreters

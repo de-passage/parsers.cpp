@@ -1,5 +1,6 @@
 #include "./description/alternative.hpp"
 #include "./description/ascii.hpp"
+#include "./description/basic_bind.hpp"
 #include "./description/dynamic_range.hpp"
 #include "./description/guard.hpp"
 #include "./description/modifiers.hpp"

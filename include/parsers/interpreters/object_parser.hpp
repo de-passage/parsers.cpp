@@ -344,6 +344,11 @@ struct object_parser {
           modifier(std::get<1>(std::forward<decltype(pair)>(pair)))};
     });
   }
+
+  template <class R>
+  constexpr static inline auto value(R&& result) noexcept {
+    return std::get<1>(std::forward<R>(result).value());
+  }
 };
 }  // namespace parsers::interpreters
 

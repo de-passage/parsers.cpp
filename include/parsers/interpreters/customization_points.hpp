@@ -59,6 +59,11 @@ template <class I, class T, std::size_t S, class... Args>
       type<detail::remove_cvref_t<T>>, std::forward<Args>(args)...);
 }
 
+template <class I, class R>
+[[nodiscard]] constexpr auto value(R&& result) noexcept {
+  return std::decay_t<I>::value(std::forward<R>(result));
+}
+
 template <class D, class I>
 struct parser_indirection_t {
   using parser_t = D;
@@ -245,6 +250,23 @@ struct modifier_parser {
   }
 };
 
+template <class D, class I>
+struct bind_parser {
+  D descriptor;
+  I interpreter;
+  template <class ItB, class ItE>
+  constexpr auto operator()(ItB begin, ItE end) const noexcept
+      -> detail::result_t<I, ItB, D> {
+    auto r = descriptor.interpret()(begin, end);
+    if (detail::has_value<typename D::interpreter_t>(r)) {
+      auto nparser =
+          interpreter(descriptor(detail::value<typename D::interpreter_t>(r)));
+      return nparser(detail::next_iterator<typename D::interpreter_t>(r), end);
+    }
+    return detail::failure<I, D>(begin, begin, end);
+  }
+};
+
 }  // namespace detail
 
 template <class T,
@@ -308,6 +330,7 @@ constexpr auto parsers_interpreters_make_parser(
   return detail::alternative_parser<detail::remove_cvref_t<A>, std::decay_t<I>>{
       std::forward<A>(descriptor), std::forward<I>(interpreter)};
 }
+
 template <
     class D,
     class J,
@@ -320,6 +343,16 @@ constexpr auto parsers_interpreters_make_parser(
                                  std::decay_t<J>,
                                  detail::remove_cvref_t<D>>{
       parser, std::forward<D>(descriptor)};
+}
+
+template <class D,
+          class I,
+          std::enable_if_t<description::is_bind_v<std::decay_t<D>>, int> = 0>
+constexpr auto parsers_interpreters_make_parser(D&& descriptor,
+                                                I&& interpreter) noexcept {
+  return detail::bind_parser<detail::remove_cvref_t<D>,
+                             detail::remove_cvref_t<I>>{
+      std::forward<D>(descriptor), std::forward<I>(interpreter)};
 }
 
 }  // namespace parsers::customization_points

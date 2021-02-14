@@ -36,7 +36,7 @@ TEST(Discard, ShouldWorkUnchangedWithRange) {
   static_assert(streq(string(p1.value()), "aaa"));
   constexpr auto p2 = parsers::parse_range(_2, "ab");
   static_assert(p2.has_value());
-  static_assert(streq(string(p1.value()), "ab"));
+  static_assert(streq(string(p2.value()), "ab"));
 }
 
 TEST(Discard, ShouldDiscardValuesWithObjectParser) {

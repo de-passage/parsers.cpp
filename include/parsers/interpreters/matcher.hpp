@@ -96,6 +96,11 @@ struct matcher {
     }
     return result_t<IB>{};
   }
+
+  template <class R>
+  constexpr static inline empty value(R&& result) noexcept {
+    return empty{};
+  }
 };
 
 }  // namespace parsers::interpreters
