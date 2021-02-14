@@ -6,6 +6,8 @@
 
 #include <gtest/gtest.h>
 
+#include "./streq.hpp"
+
 namespace example {
 using namespace parsers::description;
 using namespace parsers::dsl;
@@ -92,4 +94,56 @@ TEST(Bind, ShouldWorkUnchangedWithMatcher) {
   static_assert(!parsers::match(_3, "fail fail"));
 }
 
-TEST(Bind, ShouldWorkWithRange) {}
+template <class P, class T>
+constexpr bool check(P&& pair, T&& str) noexcept {
+  return streq(parsers::description::static_string{pair.first, pair.second},
+               std::forward<T>(str));
+}
+
+TEST(Bind, ShouldWorkWithRange) {
+  using namespace example;
+  constexpr auto p1 = parsers::parse_range(_1, "3aaabc");
+  static_assert(p1.has_value());
+  constexpr auto r1 = p1.value();
+  static_assert(check(r1, "aaa"));
+  constexpr auto p2 = parsers::parse_range(_1, "3aa");
+  static_assert(!p2.has_value());
+  constexpr auto p3 = parsers::parse_range(_2, "");
+  static_assert(!p3.has_value());
+  constexpr auto p4 = parsers::parse_range(_2, "ab");
+  static_assert(p4.has_value());
+  static_assert(check(p4.value(), "b"));
+  constexpr auto p5 = parsers::parse_range(_2, "ce");
+  static_assert(!p5.has_value());
+  constexpr auto p6 = parsers::parse_range(_2, "c");
+  static_assert(!p6.has_value());
+  constexpr auto p7 = parsers::parse_range(_3, "test tset");
+  static_assert(p7.has_value());
+  static_assert(check(p7.value(), "tset"));
+  constexpr auto p8 = parsers::parse_range(_3, "palindrome emordnilap");
+  static_assert(p8.has_value());
+  static_assert(check(p8.value(), "emordnilap"));
+  constexpr auto p9 = parsers::parse_range(_3, "fail fail");
+  static_assert(!p9.has_value());
+}
+
+TEST(Bind, ObjectParserShouldWork) {
+  using namespace example;
+
+  auto p1 = parsers::parse(_1, "4aaaaaefd");
+  ASSERT_TRUE(p1.has_value());
+  auto& r1 = p1.value();
+  ASSERT_EQ(r1.size(), 5);
+  for (std::size_t s = 0; s < 5; ++s) {
+    ASSERT_EQ(r1[s], 'a');
+  }
+
+  //   auto p2 = parsers::parse(many{_2}, "abcdef");
+  //   ASSERT_TRUE(p2.has_value());
+  //   auto& r2 = p2.value();
+  //   ASSERT_EQ(r2.size(), 3);
+  //   auto expected = "bdf";
+  //   for (std::size_t s = 0; s < 3; ++s) {
+  //     ASSERT_EQ(r2[s], expected[s]);
+  // }
+}

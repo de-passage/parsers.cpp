@@ -254,16 +254,19 @@ template <class D, class I>
 struct bind_parser {
   D descriptor;
   I interpreter;
+  template <class A, class B>
+  using ret = decltype(descriptor(detail::value<typename D::interpreter_t>(
+      descriptor.interpret()(std::declval<A>(), std::declval<B>()))));
   template <class ItB, class ItE>
   constexpr auto operator()(ItB begin, ItE end) const noexcept
-      -> detail::result_t<I, ItB, D> {
+      -> detail::result_t<I, ItB, ret<ItB, ItE>> {
     auto r = descriptor.interpret()(begin, end);
     if (detail::has_value<typename D::interpreter_t>(r)) {
       auto nparser =
           interpreter(descriptor(detail::value<typename D::interpreter_t>(r)));
       return nparser(detail::next_iterator<typename D::interpreter_t>(r), end);
     }
-    return detail::failure<I, D>(begin, begin, end);
+    return detail::failure<I, ret<ItB, ItE>>(begin, begin, end);
   }
 };
 

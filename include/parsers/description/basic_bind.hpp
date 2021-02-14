@@ -17,9 +17,6 @@ struct basic_bind : container<D> {
   I interpreter;
 
   template <class T>
-  using result_t = std::invoke_result_t<F, T>;
-
-  template <class T>
   constexpr auto operator()(T&& value) const noexcept {
     return function(std::forward<T>(value));
   }

@@ -176,6 +176,10 @@ struct object_parser {
   struct object<M, I, std::enable_if_t<description::is_dynamic_range_v<M>>> {
     using type = std::vector<object_t<I, typename M::parser_t>>;
   };
+  template <class M, class I>
+  struct object<M, I, std::enable_if_t<description::is_bind_v<M>>> {
+    using type = typename M::template result_t<I>;
+  };
   template <class I, class T>
   struct object<T, I, std::enable_if_t<description::is_sequence_v<T>>> {
     template <class U>
