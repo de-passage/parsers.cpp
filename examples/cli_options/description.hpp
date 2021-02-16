@@ -19,34 +19,12 @@ using d = discard<T>;
 using dash = character<'-'>;
 using double_dash = both<dash, dash>;
 
-struct to_optional {
-  template <class T>
-  constexpr std::optional<std::variant_alternative_t<0, std::decay_t<T>>>
-  operator()(T&& variant) const noexcept {
-    if (variant.index() == 0) {
-      return std::get<0>(std::forward<T>(variant));
-    }
-    return {};
-  }
-};
-template <class T>
-using optional = map<either<T, succeed_t>, to_optional>;
-
-struct to_string_view {
-  template <class It, class T = typename std::iterator_traits<It>::value_type>
-  constexpr std::basic_string_view<T> operator()(const It& beg,
-                                                 const It& end) const noexcept {
-    return std::basic_string_view<T>{
-        beg, static_cast<std::size_t>(std::distance(beg, end))};
-  }
-};
-
-using short_option_name = both<d<dash>, build<alpha_t, to_string_view>>;
+using short_option_name = both<d<dash>, as_string_view<alpha_t>>;
 using long_option_name =
     both<d<double_dash>,
-         build<both<alpha_t,
-                    many<alternative<alpha_t, character<'-'>, character<'_'>>>>,
-               to_string_view>>;
+         as_string_view<
+             both<alpha_t,
+                  many<alternative<alpha_t, character<'-'>, character<'_'>>>>>>;
 
 using quotation_mark = character<'"'>;
 using backslash = character<'\\'>;
@@ -59,10 +37,9 @@ struct non_quote : satisfy_character<non_quote> {
   }
 };
 
-using string =
-    sequence<d<quotation_mark>,
-             build<many<either<escaped_quote, non_quote>>, to_string_view>,
-             d<quotation_mark>>;
+using string = sequence<d<quotation_mark>,
+                        as_string_view<many<either<escaped_quote, non_quote>>>,
+                        d<quotation_mark>>;
 
 struct value_characters : satisfy_character<value_characters> {
   template <class T>
@@ -78,10 +55,9 @@ struct initial_value_character : satisfy_character<initial_value_character> {
     return c != '-' && is_value_character(c);
   }
 };
-using value =
-    choose<string,
-           build<both<initial_value_character, many<value_characters>>,
-                 to_string_view>>;
+using value = choose<
+    string,
+    as_string_view<both<initial_value_character, many<value_characters>>>>;
 
 using spaces = d<many<space_t>>;
 using spaces1 = d<many1<space_t>>;

@@ -2,6 +2,11 @@
 
 #include <gtest/gtest.h>
 
+#include <string>
+#include "./streq.hpp"
+
+using namespace std::literals::string_literals;
+
 TEST(AdditionalDescriptions, Many1) {
   using namespace parsers::description;
   using many1_a = many1<character<'a'>>;
@@ -60,4 +65,24 @@ TEST(AdditionalDescriptions, Choose) {
   static_assert(std::is_same_v<typename decltype(p)::success_type, char>);
   static_assert(p.has_value());
   static_assert(p.value() == 'b');
+}
+
+TEST(AdditionalDescriptions, Option) {
+  using namespace parsers::description;
+  using namespace parsers::dsl;
+
+  constexpr auto os = optional{"string"_s};
+  static_assert(parsers::match(os, "string!"));
+  static_assert(parsers::match(os, "nope!"));
+  auto p1 = parsers::parse(os, "string!"s);
+  auto p2 = parsers::parse(os, "nope!"s);
+
+  static_assert(
+      std::is_same_v<
+          typename decltype(p1)::success_type,
+          std::optional<static_string<char, std::string::const_iterator>>>);
+
+  ASSERT_TRUE(p1.value());
+  ASSERT_FALSE(p2.value());
+  ASSERT_TRUE(streq(*p1.value(), "string"));
 }

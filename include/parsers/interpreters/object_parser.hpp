@@ -111,11 +111,17 @@ constexpr static inline auto build([[maybe_unused]] type_t<S>,
   return *std::forward<I>(b);
 }
 
-template <class S, class I, instance_of<S, description::static_string> = 0>
-constexpr static inline S build([[maybe_unused]] type_t<S>,
+template <
+    class S,
+    class I,
+    instance_of<S, description::static_string> = 0,
+    class R = description::static_string<
+        typename std::iterator_traits<detail::remove_cvref_t<I>>::value_type,
+        detail::remove_cvref_t<I>>>
+constexpr static inline R build([[maybe_unused]] type_t<S>,
                                 [[maybe_unused]] I&& b,
                                 [[maybe_unused]] I&& e) noexcept {
-  return S{std::forward<I>(b), std::forward<I>(e)};
+  return R{std::forward<I>(b), std::forward<I>(e)};
 }
 
 template <class T,
