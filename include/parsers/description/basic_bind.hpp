@@ -3,6 +3,8 @@
 
 #include "./containers.hpp"
 
+#include "../result_traits.hpp"
+
 namespace parsers::description {
 template <class D, class F, class I>
 struct basic_bind : container<D> {
@@ -15,6 +17,28 @@ struct basic_bind : container<D> {
 
   F function;
   I interpreter;
+
+  using initial_interpreted_type =
+      std::invoke_result_t<interpreter_t, typename base::parser_t>;
+  template <class ItB, class ItE>
+  using initial_result_type =
+      std::invoke_result_t<initial_interpreted_type, ItB, ItE>;
+
+  template <class ItB, class ItE>
+  using initial_value_type = typename parsers::result_traits<
+      initial_result_type<ItB, ItE>>::value_type;
+
+  template <class ItB, class ItE>
+  using final_parser_type =
+      std::invoke_result_t<F, initial_value_type<ItB, ItE>>;
+
+  template <class J, class ItB, class ItE>
+  using final_interpreted_type =
+      std::invoke_result_t<J, final_parser_type<ItB, ItE>>;
+
+  template <class J, class ItB, class ItE>
+  using final_result_type =
+      std::invoke_result_t<final_interpreted_type<J, ItB, ItE>, ItB, ItE>;
 
   template <class T>
   constexpr auto operator()(T&& value) const noexcept {

@@ -178,7 +178,7 @@ struct object_parser {
   };
   template <class M, class I>
   struct object<M, I, std::enable_if_t<description::is_bind_v<M>>> {
-    using type = typename M::template result_t<I>;
+    using type = object_t<I, typename M::template final_parser_type<I, I>>;
   };
   template <class I, class T>
   struct object<T, I, std::enable_if_t<description::is_sequence_v<T>>> {

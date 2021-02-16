@@ -24,8 +24,12 @@ struct to_int {
 } constexpr to_int;
 
 struct next_char {
+  struct eq_next {
+    char c;
+    constexpr bool operator()(char d) const { return c + 1 == d; }
+  };
   constexpr auto operator()(char c) const noexcept {
-    return character_class{[c](char d) { return c + 1 == d; }};
+    return character_class{eq_next{c}};
   }
 } constexpr next_char;
 
@@ -72,6 +76,15 @@ constexpr auto _1 = ascii::digit / to_int >>= n_char{'a'};
 constexpr auto _2 = any >>= next_char;
 constexpr auto _3 = (many{ascii::alpha} /= to_string) & (~ascii::space) >>=
     reversed;
+
+static_assert(
+    std::is_same_v<decltype(_1)::template final_parser_type<char*, char*>,
+                   at_least<parsers::description::detail::dynamic_count,
+                            char,
+                            container<char>>>);
+static_assert(
+    std::is_same_v<decltype(_2)::template final_parser_type<char*, char*>,
+                   character_class<next_char::eq_next>>);
 
 }  // namespace example
 
@@ -133,12 +146,12 @@ TEST(Bind, ObjectParserShouldWork) {
     ASSERT_EQ(r1[s], 'a');
   }
 
-  //   auto p2 = parsers::parse(many{_2}, "abcdef");
-  //   ASSERT_TRUE(p2.has_value());
-  //   auto& r2 = p2.value();
-  //   ASSERT_EQ(r2.size(), 3);
-  //   auto expected = "bdf";
-  //   for (std::size_t s = 0; s < 3; ++s) {
-  //     ASSERT_EQ(r2[s], expected[s]);
-  // }
+  auto p2 = parsers::parse(many{_2}, "abcdef");
+  ASSERT_TRUE(p2.has_value());
+  auto& r2 = p2.value();
+  ASSERT_EQ(r2.size(), 3);
+  auto expected = "bdf";
+  for (std::size_t s = 0; s < 3; ++s) {
+    ASSERT_EQ(r2[s], expected[s]);
+  }
 }
