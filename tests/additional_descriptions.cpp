@@ -50,3 +50,14 @@ TEST(AdditionalDescriptions, CaseInsensitiveCharacters) {
     }
   }
 }
+
+TEST(AdditionalDescriptions, Choose) {
+  using namespace parsers::dsl;
+  using namespace parsers::description;
+
+  constexpr auto abc = choose{'a', 'b', 'c'};
+  constexpr auto p = parsers::parse(abc, "b");
+  static_assert(std::is_same_v<typename decltype(p)::success_type, char>);
+  static_assert(p.has_value());
+  static_assert(p.value() == 'b');
+}

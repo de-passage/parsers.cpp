@@ -9,6 +9,9 @@
 #include "./additional_dsl.hpp"
 #include "./description/dependent_modifiers.hpp"
 
+#include "./interpreter_traits.hpp"
+#include "./result_traits.hpp"
+
 #include <iterator>
 #include <string_view>
 #include <type_traits>

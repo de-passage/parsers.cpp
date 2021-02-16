@@ -2,3 +2,5 @@
 #include "./build.hpp"
 #include "./discard.hpp"
 #include "./map.hpp"
+
+#include "./choose.hpp"

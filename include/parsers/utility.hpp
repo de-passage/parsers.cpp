@@ -17,6 +17,11 @@ struct type_t {
 template <class T>
 constexpr static inline type_t<T> type{};
 
+template <class... Ts>
+struct type_list_t {};
+template <class... Ts>
+constexpr static inline type_list_t type_list{};
+
 namespace detail {
 template <class T, template <class...> class I>
 using instance_of =
