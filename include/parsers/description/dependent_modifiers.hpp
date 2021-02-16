@@ -5,4 +5,5 @@
 
 #include "./as_string_view.hpp"
 #include "./choose.hpp"
+#include "./construct.hpp"
 #include "./optional.hpp"

@@ -87,4 +87,4 @@ static_assert(!r8.value().value.has_value());
 static_assert(
     std::is_same_v<std::decay_t<decltype(
                        parsers::parse(cli_options::option_list{}, "").value())>,
-                   std::vector<cli_options::option<char>>>);
+                   std::vector<cli_options::option>>);

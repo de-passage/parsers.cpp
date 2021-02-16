@@ -62,29 +62,20 @@ using value = choose<
 using spaces = d<many<space_t>>;
 using spaces1 = d<many1<space_t>>;
 
-template <class T>
 struct option {
-  std::basic_string_view<T> name;
-  std::optional<std::basic_string_view<T>> value;
+  std::string_view name;
+  std::optional<std::string_view> value;
 };
-struct to_option {
-  template <
-      class T,
-      class R = typename std::tuple_element_t<0, std::decay_t<T>>::value_type>
-  constexpr option<R> operator()(T&& values) const noexcept {
-    return option<R>{std::get<0>(std::forward<T>(values)),
-                     std::get<1>(std::forward<T>(values))};
-  }
-};
+template <class Name, class Value>
+using as_option = construct<option, Name, Value>;
 
 using short_option =
-    map<sequence<short_option_name, optional<both<spaces, value>>>, to_option>;
-using long_option = map<
-    sequence<long_option_name,
-             optional<sequence<
-                 d<either<sequence<spaces, character<'='>, spaces>, spaces1>>,
-                 value>>>,
-    to_option>;
+    as_option<short_option_name, optional<both<spaces, value>>>;
+using long_option =
+    as_option<long_option_name,
+              optional<sequence<
+                  d<either<sequence<spaces, character<'='>, spaces>, spaces1>>,
+                  value>>>;
 
 using any_option = choose<short_option, long_option>;
 
