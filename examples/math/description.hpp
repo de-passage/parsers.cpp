@@ -7,12 +7,31 @@ namespace math {
 using namespace parsers::description;
 using namespace ascii;
 
-using opening_parenthese = character<'('>;
-using closing_parenthese = character<')'>;
+template <class T>
+using d = discard<T>;
+struct to_int {
+  template <class T, class U>
+  constexpr int operator()(T beg, const U& end) const noexcept {
+    int acc = 0;
+    while (beg != end) {
+      acc = acc * 10 + (*beg - '0');
+    }
+    return acc;
+  }
+  constexpr int operator()(std::variant<int, int>&& var) const noexcept {
+    if (var.index() == 0) {
+      return std::get<0>(var) * -1;
+    }
+    return std::get<1>(var);
+  }
+};
+
+using opening_parenthese = d<character<'('>>;
+using closing_parenthese = d<character<')'>>;
 using plus = character<'+'>;
 using minus = character<'-'>;
-using whole_number = many1<digit_t>;
-using number = either<both<minus, whole_number>, whole_number>;
+using whole_number = build<many1<digit_t>, to_int>;
+using number = either<both<d<minus>, whole_number>, whole_number>;
 template <class... Ts>
 using parenthesised = sequence<opening_parenthese,
                                many<space_t>,

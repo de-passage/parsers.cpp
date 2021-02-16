@@ -242,7 +242,7 @@ struct object_parser {
       acc.value().second.push_back(std::get<1>(std::forward<Add>(add).value()));
       acc.value().first = std::get<0>(std::forward<Add>(add).value());
     }
-    return add;
+    return std::move(add);
   }
   template <class R, class... Args>
   constexpr static inline auto build_sequence_result(

@@ -40,7 +40,7 @@ struct range_parser {
     if (add.has_value()) {
       acc.value().second = std::get<1>(std::forward<Add>(add).value());
     }
-    return add;
+    return std::move(add);
   }
 
   template <class S, class A, class... Args>

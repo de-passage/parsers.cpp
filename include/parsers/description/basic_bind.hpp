@@ -11,6 +11,8 @@ struct basic_bind : container<D> {
   using base = container<D>;
   using interpreter_t = I;
 
+  constexpr basic_bind() noexcept = default;
+
   template <class E, class G>
   constexpr basic_bind(E&& desc, G&& func) noexcept
       : base{std::forward<E>(desc)}, function{std::forward<G>(func)} {}

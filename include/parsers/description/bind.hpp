@@ -17,6 +17,8 @@ struct bind
                  F,
                  interpreters::make_parser_t<interpreters::object_parser>>;
 
+  constexpr bind() noexcept = default;
+
   template <class E, class G>
   constexpr bind(E&& desc, G&& func) noexcept
       : base{std::forward<E>(desc), std::forward<G>(func)} {}

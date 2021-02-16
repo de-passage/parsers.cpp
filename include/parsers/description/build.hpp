@@ -12,6 +12,9 @@ struct build
     : modifier<D, interpreters::make_parser_t<interpreters::range_parser>> {
   using base =
       modifier<D, interpreters::make_parser_t<interpreters::range_parser>>;
+
+  constexpr build() noexcept = default;
+
   template <class U, class E>
   constexpr build(E&& desc, U&& func) noexcept
       : base{std::forward<E>(desc)}, transformer{std::forward<U>(func)} {}

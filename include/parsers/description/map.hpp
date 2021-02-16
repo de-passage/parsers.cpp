@@ -15,6 +15,8 @@ struct map
   using base =
       modifier<D, interpreters::make_parser_t<interpreters::object_parser>>;
 
+  constexpr map() noexcept = default;
+
   template <class E, class U>
   constexpr map(E&& desc, U&& func) noexcept
       : base{std::forward<E>(desc)}, modifier{std::forward<U>(func)} {}
