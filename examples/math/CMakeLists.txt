@@ -1,4 +1,4 @@
-add_executable(math_parser ./main.cpp)
+add_executable(math_parser ./main.cpp ./static_tests.cpp)
 target_include_directories(math_parser PUBLIC ${LIBRARY_INCLUDE_DIRECTORY})
 
 if(MSVC)
