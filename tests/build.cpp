@@ -71,3 +71,28 @@ TEST(Build, ObjectParserShouldReturnObjectFromRange) {
   static_assert(p4.has_value());
   static_assert(p4.value() == 10);
 }
+
+struct to_int {
+  constexpr int operator()(const char* beg, const char* end) noexcept {
+    int count = 0;
+    while (beg != end) {
+      count = count * 10 + *beg - '0';
+      ++beg;
+    }
+    return count;
+  }
+} constexpr to_int;
+
+TEST(Build, InnerParserFailureShouldPropagate) {
+  using namespace examples;
+  using parsers::match;
+  constexpr auto number = many1{ascii::digit};
+  static_assert(match(number, "312"));
+  static_assert(!match(number, ""));
+  constexpr auto integer = number /= to_int;
+  static_assert(match(integer, "312"));
+  static_assert(!match(integer, ""));
+
+  using whole_number = build<many1<ascii::digit_t>, struct to_int>;
+  static_assert(!match(whole_number{}, ""));
+}

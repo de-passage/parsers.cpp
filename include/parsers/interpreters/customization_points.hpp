@@ -121,15 +121,15 @@ struct dynamic_range_parser {
     while (beg != end) {
       auto r = detail::combine<I, M>(acc, parser(beg, end));
       if (!has_value(r)) {
-        if (count >= expected) {
-          break;
-        }
-        return detail::failure<I, M>(b, beg, end);
+        break;
       }
       beg = next_iterator(std::move(r));
       ++count;
     }
-    return acc;
+    if (count >= expected) {
+      return acc;
+    }
+    return detail::failure<I, M>(b, beg, end);
   }
 };
 
