@@ -4,6 +4,7 @@
 #include "./map.hpp"
 
 #include "./as_string_view.hpp"
+#include "./ascii_numbers.hpp"
 #include "./choose.hpp"
 #include "./construct.hpp"
 #include "./optional.hpp"

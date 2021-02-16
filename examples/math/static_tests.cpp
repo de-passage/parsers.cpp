@@ -27,11 +27,12 @@ constexpr auto check_number_parser = [](const auto& str, int v) -> bool {
   if (!r.has_value()) {
     return false;
   }
-  return r.value() == v;
+  return static_cast<int>(r.value()) == v;
 };
 
 static_assert(check_number_parser("123", 123));
 static_assert(check_number_parser("-42", -42));
+static_assert(check_number_parser("-0", 0));
 static_assert(!check_number_parser("", 0));
 static_assert(!check_number_parser("  ", 0));
 static_assert(!check_number_parser("ab", 0));

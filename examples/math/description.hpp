@@ -11,17 +11,6 @@ using namespace ascii;
 
 template <class T>
 using d = discard<T>;
-struct to_int {
-  template <class T, class U>
-  constexpr int operator()(T beg, const U& end) const noexcept {
-    int acc = 0;
-    while (beg != end) {
-      acc = acc * 10 + (*beg - '0');
-      ++beg;
-    }
-    return acc;
-  }
-};
 template <class T>
 struct always {
   template <class... Ts>
@@ -35,7 +24,7 @@ using closing_parenthese = d<character<')'>>;
 using spaces = d<many<space_t>>;
 using plus = character<'+'>;
 using minus = character<'-'>;
-using whole_number = build<many1<digit_t>, to_int>;
+using whole_number = ascii::integer;
 using negative_wnumber = map<both<d<minus>, whole_number>, std::negate<>>;
 using number = choose<negative_wnumber, whole_number>;
 template <class... Ts>
