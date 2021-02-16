@@ -21,7 +21,7 @@ struct choose
   constexpr choose() noexcept = default;
 
   template <class... Qs>
-  constexpr choose(Qs&&... qs) noexcept
+  constexpr explicit choose(Qs&&... qs) noexcept
       : base{alternative<Ps...>{std::forward<Qs>(qs)...}} {}
 
   template <class V,

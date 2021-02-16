@@ -21,16 +21,6 @@ struct to_int {
     }
     return acc;
   }
-  template <
-      class V,
-      std::enable_if_t<std::is_same_v<std::decay_t<V>, std::variant<int, int>>,
-                       int> = 0>
-  constexpr int operator()(V&& var) const noexcept {
-    if (var.index() == 0) {
-      return std::get<0>(var) * -1;
-    }
-    return std::get<1>(var);
-  }
 };
 template <class T>
 struct always {
@@ -46,7 +36,8 @@ using spaces = d<many<space_t>>;
 using plus = character<'+'>;
 using minus = character<'-'>;
 using whole_number = build<many1<digit_t>, to_int>;
-using number = map<either<both<d<minus>, whole_number>, whole_number>, to_int>;
+using negative_wnumber = map<both<d<minus>, whole_number>, std::negate<>>;
+using number = choose<negative_wnumber, whole_number>;
 template <class... Ts>
 using parenthesised =
     sequence<opening_parenthese, spaces, Ts..., spaces, closing_parenthese>;

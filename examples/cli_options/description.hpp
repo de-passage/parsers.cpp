@@ -78,20 +78,10 @@ struct initial_value_character : satisfy_character<initial_value_character> {
     return c != '-' && is_value_character(c);
   }
 };
-struct collapse {
-  template <class V, class T = std::variant_alternative_t<0, std::decay_t<V>>>
-  constexpr T operator()(V&& variant) const noexcept {
-    if (variant.index() == 0) {
-      return std::get<0>(std::forward<V>(variant));
-    }
-    return std::get<1>(std::forward<V>(variant));
-  }
-};
 using value =
-    map<either<string,
-               build<both<initial_value_character, many<value_characters>>,
-                     to_string_view>>,
-        collapse>;
+    choose<string,
+           build<both<initial_value_character, many<value_characters>>,
+                 to_string_view>>;
 
 using spaces = d<many<space_t>>;
 using spaces1 = d<many1<space_t>>;
@@ -120,7 +110,7 @@ using long_option = map<
                  value>>>,
     to_option>;
 
-using any_option = map<either<short_option, long_option>, collapse>;
+using any_option = choose<short_option, long_option>;
 
 using option_list = both<many<both<spaces1, any_option>>, spaces>;
 
