@@ -1,4 +1,4 @@
-add_executable(cli-options main.cpp)
+add_executable(cli-options main.cpp static_tests.cpp)
 target_include_directories(cli-options PRIVATE ${LIBRARY_INCLUDE_DIRECTORY})
 
 if(MSVC)

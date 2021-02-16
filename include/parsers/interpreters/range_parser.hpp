@@ -55,7 +55,7 @@ struct range_parser {
   template <std::size_t S, class D, class I>
   constexpr static inline auto alternative([[maybe_unused]] type_t<D>,
                                            I&& value) noexcept {
-    return value;
+    return std::move(value);
   }
 
   template <class M, class I, class J, class D = std::decay_t<M>>
