@@ -31,6 +31,27 @@ template <class... Ts>
 using parenthesised =
     sequence<opening_parenthese, spaces, Ts..., spaces, closing_parenthese>;
 
+namespace ast {
+struct math_expression {
+  virtual int evaluate() const = 0;
+  virtual ~math_expression() = default;
+};
+
+struct literal : math_expression {
+  int value;
+  [[nodiscard]] int evaluate() const override { return value; }
+};
+
+template <class Op>
+struct binary_operation : math_expression {
+  std::unique_ptr<math_expression> left;
+  std::unique_ptr<math_expression> right;
+  [[nodiscard]] int evaluate() const override {
+    return Op{}(left->evaluate(), right->evaluate());
+  }
+};
+}  // namespace ast
+
 struct rec_math_expression;
 
 using restricted_math_expression =

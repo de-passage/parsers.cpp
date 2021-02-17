@@ -165,10 +165,7 @@ struct buildable<
 struct object_parser {
   template <class T, class I, class = void>
   struct object {
-    using type = typename std::conditional_t<
-        description::is_recursive_v<T>,
-        type_t<detail::unique_ptr<T, object_parser, I>>,
-        detail::object<std::decay_t<T>, std::decay_t<I>>>::type;
+    using type = detail::object_t<std::decay_t<T>, std::decay_t<I>>;
   };
 
   template <class I, class T>
@@ -177,6 +174,10 @@ struct object_parser {
   template <class C, class I>
   struct object<const C*, I, std::enable_if_t<std::is_integral_v<C>>> {
     using type = description::static_string<C>;
+  };
+  template <class R, class I>
+  struct object<R, I, std::enable_if_t<description::is_recursive_v<R>>> {
+    using type = detail::unique_ptr<R, object_parser, I>;
   };
   template <class M, class I>
   struct object<M, I, std::enable_if_t<description::is_dynamic_range_v<M>>> {
@@ -248,7 +249,7 @@ struct object_parser {
       acc.value().second.push_back(std::get<1>(std::forward<Add>(add).value()));
       acc.value().first = std::get<0>(std::forward<Add>(add).value());
     }
-    return std::move(add);
+    return std::forward<Add>(add);
   }
   template <class R, class... Args>
   constexpr static inline auto build_sequence_result(
@@ -306,7 +307,7 @@ struct object_parser {
       IB begin,
       [[maybe_unused]] IE end) noexcept {
     if (r.has_value()) {
-      return dpsg::success(*r, empty{});
+      return dpsg::success(*std::move(r), empty{});
     }
     return dpsg::failure(begin);
   }

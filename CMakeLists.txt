@@ -93,3 +93,6 @@ if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
   target_compile_options(tests PRIVATE /W3 /WX)
 endif(MSVC)
+
+add_custom_target(recursive_parsers_tests)
+add_dependencies(recursive_parsers_tests recursive_dsl.cpp math_parser)
