@@ -43,7 +43,7 @@ struct matcher {
     if (add.has_value()) {
       acc = *std::forward<Add>(add);
     }
-    return add;
+    return std::forward<Add>(add);
   }
 
   template <class S, class... Args>
@@ -55,7 +55,7 @@ struct matcher {
   template <std::size_t S, class D, class I>
   constexpr static inline auto alternative([[maybe_unused]] type_t<D>,
                                            I&& input) noexcept {
-    return input;
+    return std::forward<I>(input);
   }
 
   template <class I,
