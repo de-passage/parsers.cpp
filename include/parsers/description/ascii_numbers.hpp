@@ -23,8 +23,15 @@ struct integer
   template <class It>
   using result_t = unsigned long long;
 
+  template <class P>
+  constexpr int operator()(P&& pair) const noexcept {
+    return _build(std::get<0>(std::forward<P>(pair)),
+                  std::get<1>(std::forward<P>(pair)));
+  }
+
+ private:
   template <class T, class U>
-  constexpr int operator()(T beg, const U& end) const noexcept {
+  constexpr int _build(T beg, const U& end) const noexcept {
     int acc = 0;
     while (beg != end) {
       acc = acc * 10 + (*beg - '0');

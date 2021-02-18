@@ -24,9 +24,16 @@ struct as_string_view
   using result_t =
       std::basic_string_view<typename std::iterator_traits<It>::value_type>;
 
+  template <class P>
+  constexpr auto operator()(P&& pair) const noexcept {
+    return _build(std::get<0>(std::forward<P>(pair)),
+                  std::get<1>(std::forward<P>(pair)));
+  }
+
+ private:
   template <class ItB, class ItE>
-  constexpr result_t<std::decay_t<ItB>> operator()(ItB&& beg,
-                                                   ItE&& end) const noexcept {
+  constexpr result_t<std::decay_t<ItB>> _build(ItB&& beg,
+                                               ItE&& end) const noexcept {
     return result_t<std::decay_t<ItB>>{
         &*std::forward<ItB>(beg),
         static_cast<std::size_t>(std::distance(beg, end))};

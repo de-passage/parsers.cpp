@@ -28,6 +28,12 @@ struct build
   constexpr auto operator()(It beg, It end) const noexcept {
     return transformer(beg, end);
   }
+
+  template <class P>
+  constexpr auto operator()(P&& pair) const noexcept {
+    return transformer(std::get<0>(std::forward<P>(pair)),
+                       std::get<1>(std::forward<P>(pair)));
+  }
 };
 template <class D, class T>
 build(D&&, T&&) -> build<detail::remove_cvref_t<D>, detail::remove_cvref_t<T>>;

@@ -7,6 +7,8 @@
 #include <optional>
 #include <type_traits>
 
+#include "../result_traits.hpp"
+
 namespace parsers::interpreters {
 namespace detail {
 using namespace ::parsers::detail;
@@ -56,33 +58,20 @@ struct matcher {
     return input;
   }
 
-  template <class M, class IB, class IE, class E, class D = std::decay_t<M>>
-  constexpr static inline auto modify([[maybe_unused]] type_t<D>,
-                                      [[maybe_unused]] M&&,
-                                      dpsg::result<std::pair<IB, IB>, E>&& r,
-                                      [[maybe_unused]] IB beg,
-                                      [[maybe_unused]] IE end) noexcept {
-    if (r.has_value()) {
-      return result_t<IB>{std::get<1>(std::move(r).value())};
-    }
-    return result_t<IB>{};
-  }
-
-  template <class M,
+  template <class I,
+            class D,
             class IB,
             class IE,
-            class E,
-            class T,
-            class D = std::decay_t<M>,
-            std::enable_if_t<!std::is_same_v<std::decay_t<IB>, std::decay_t<T>>,
-                             int> = 0>
-  constexpr static inline auto modify([[maybe_unused]] type_t<D>,
-                                      [[maybe_unused]] M&&,
-                                      dpsg::result<std::pair<IB, T>, E>&& r,
-                                      [[maybe_unused]] IB beg,
-                                      [[maybe_unused]] IE end) noexcept {
-    if (r.has_value()) {
-      return result_t<IB>{std::get<0>(std::move(r).value())};
+            class D1 = detail::remove_cvref_t<D>>
+  constexpr static inline result_t<IB> modify([[maybe_unused]] type_t<D1>,
+                                              I&& interpreter,
+                                              D&& description,
+                                              IB beg,
+                                              IE end) noexcept {
+    auto result = interpreter(description.parser())(beg, end);
+    using traits = parsers::result_traits<decltype(result)>;
+    if (traits::has_value(result)) {
+      return result_t<IB>{traits::next_iterator(std::move(result))};
     }
     return result_t<IB>{};
   }

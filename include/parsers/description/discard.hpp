@@ -17,9 +17,8 @@ struct discard
             std::enable_if_t<std::is_constructible_v<base, Us...>, int> = 0>
   constexpr explicit discard(Us&&... us) : base{std::forward<Us>(us)...} {}
 
-  template <class It>
-  constexpr empty operator()([[maybe_unused]] It beg,
-                             [[maybe_unused]] It end) const noexcept {
+  template <class... As>
+  constexpr empty operator()([[maybe_unused]] As&&...) const noexcept {
     return empty{};
   }
 

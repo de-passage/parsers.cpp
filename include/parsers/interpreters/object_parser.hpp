@@ -10,6 +10,8 @@
 #include <utility>
 #include <vector>
 
+#include "../result_traits.hpp"
+
 namespace parsers::interpreters {
 namespace detail {
 using namespace ::parsers::detail;
@@ -312,37 +314,25 @@ struct object_parser {
     return dpsg::failure(begin);
   }
 
-  template <class M, class IB, class IE, class D = std::decay_t<M>>
-  constexpr static inline result_t<IB, D> modify(
-      [[maybe_unused]] type_t<D>,
-      M&& modifier,
-      dpsg::result<std::pair<IB, IB>, IB>&& r,
-      [[maybe_unused]] IB begin,
-      [[maybe_unused]] IE end) noexcept {
-    return std::move(r).then([&modifier](auto&& pair) -> result_t<IB, D> {
-      const auto snd = std::get<1>(pair);
-      return dpsg::success(
-          snd, modifier(std::get<0>(std::forward<decltype(pair)>(pair)), snd));
-    });
-  }
-
-  template <class M,
+  template <class I,
+            class D,
             class IB,
             class IE,
-            class T,
-            class D = std::decay_t<M>,
-            std::enable_if_t<!std::is_same_v<IB, T>, int> = 0>
+            class D1 = detail::remove_cvref_t<D>>
   constexpr static inline result_t<IB, D> modify(
-      [[maybe_unused]] type_t<D>,
-      M&& modifier,
-      dpsg::result<std::pair<IB, T>, IB>&& r,
-      [[maybe_unused]] IB begin,
-      [[maybe_unused]] IE end) noexcept {
-    return std::move(r).map([&modifier](auto&& pair) {
-      return std::pair{
-          std::get<0>(std::forward<decltype(pair)>(pair)),
-          modifier(std::get<1>(std::forward<decltype(pair)>(pair)))};
-    });
+      [[maybe_unused]] type_t<D1>,
+      [[maybe_unused]] I&& interpreter,
+      D&& description,
+      IB begin,
+      IE end) noexcept {
+    auto result = description.interpreter()(description.parser())(begin, end);
+    using traits = parsers::result_traits<decltype(result)>;
+
+    if (traits::has_value(result)) {
+      const auto it = traits::next_iterator(std::move(result));
+      return dpsg::success(it, description(traits::value(std::move(result))));
+    }
+    return dpsg::failure(begin);
   }
 };
 }  // namespace parsers::interpreters

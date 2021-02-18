@@ -74,8 +74,10 @@ TEST(AdditionalDescriptions, Option) {
   constexpr auto os = optional{"string"_s};
   static_assert(parsers::match(os, "string!"));
   static_assert(parsers::match(os, "nope!"));
-  auto p1 = parsers::parse(os, "string!"s);
-  auto p2 = parsers::parse(os, "nope!"s);
+  auto string = "string!"s;
+  auto nope = "nope!"s;
+  auto p1 = parsers::parse(os, string);
+  auto p2 = parsers::parse(os, nope);
 
   static_assert(
       std::is_same_v<

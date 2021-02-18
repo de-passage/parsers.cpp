@@ -7,6 +7,8 @@
 #include <optional>
 #include <type_traits>
 
+#include "../result_traits.hpp"
+
 namespace parsers::interpreters {
 namespace detail {
 using namespace ::parsers::detail;
@@ -40,7 +42,7 @@ struct range_parser {
     if (add.has_value()) {
       acc.value().second = std::get<1>(std::forward<Add>(add).value());
     }
-    return std::move(add);
+    return std::forward<Add>(add);
   }
 
   template <class S, class A, class... Args>
@@ -55,41 +57,25 @@ struct range_parser {
   template <std::size_t S, class D, class I>
   constexpr static inline auto alternative([[maybe_unused]] type_t<D>,
                                            I&& value) noexcept {
-    return std::move(value);
+    return std::forward<I>(value);
   }
 
-  template <class M, class I, class J, class D = std::decay_t<M>>
-  constexpr static inline auto modify([[maybe_unused]] type_t<D>,
-                                      [[maybe_unused]] M&&,
-                                      std::optional<I>&& opt,
-                                      I begin,
-                                      [[maybe_unused]] J end) noexcept
-      -> result_t<I> {
-    if (!opt.has_value()) {
+  template <class I,
+            class D,
+            class ItB,
+            class ItE,
+            class D1 = detail::remove_cvref_t<D>>
+  constexpr static inline auto modify([[maybe_unused]] type_t<D1>,
+                                      I&& interpreter,
+                                      D&& description,
+                                      ItB begin,
+                                      ItE end) noexcept -> result_t<ItB> {
+    auto result = interpreter(description.parser())(begin, end);
+    using traits = parsers::result_traits<decltype(result)>;
+    if (!traits::has_value(result)) {
       return dpsg::failure(begin);
     }
-    else {
-      return dpsg::success(begin, *opt);
-    }
-  }
-
-  template <class M,
-            class I,
-            class J,
-            class T,
-            class D = std::decay_t<M>,
-            std::enable_if_t<!std::is_same_v<std::decay_t<T>, std::decay_t<I>>,
-                             int> = 0>
-  constexpr static inline auto modify([[maybe_unused]] type_t<D>,
-                                      [[maybe_unused]] M&&,
-                                      dpsg::result<std::pair<I, T>, I>&& r,
-                                      I begin,
-                                      [[maybe_unused]] J end) noexcept
-      -> result_t<I> {
-    return std::move(r).map([begin = std::move(begin)](auto&& p) {
-      return std::pair{std::move(begin),
-                       std::get<0>(std::forward<decltype(p)>(p))};
-    });
+    return dpsg::success(begin, traits::next_iterator(std::move(result)));
   }
 };
 
