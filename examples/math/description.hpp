@@ -50,6 +50,9 @@ struct literal : math_expression {
 
 template <class Op>
 struct binary_operation : math_expression {
+  binary_operation(math_expression_ptr&& left,
+                   math_expression_ptr&& right) noexcept
+      : left{std::move(left)}, right{std::move(right)} {}
   math_expression_ptr left;
   math_expression_ptr right;
   [[nodiscard]] int evaluate() const override {
@@ -72,6 +75,14 @@ struct to_ast {
         ast::binary_operation<std::tuple_element_t<1, std::decay_t<T>>>>(
         std::get<0>(std::forward<T>(tpl)), std::get<2>(std::forward<T>(tpl)));
   }
+
+  template <class T,
+            std::enable_if_t<!std::is_integral_v<T> &&
+                                 !dpsg::is_template_instance_v<T, std::tuple>,
+                             int> = 0>
+  [[nodiscard]] ast::math_expression_ptr operator()(T&& ptr) const noexcept {
+    return static_cast<ast::math_expression_ptr>(std::forward<T>(ptr));
+  }
 };
 
 using number = choose<negative_integer, ascii::integer>;
@@ -83,19 +94,21 @@ using restricted_math_expression =
     choose<number_ptr, parenthesised<rec_math_expression>>;
 
 template <class Sym, class Op>
-using binary_operation = sequence<restricted_math_expression,
-                                  spaces,
-                                  map<Sym, always<Op>>,
-                                  spaces,
-                                  rec_math_expression>;
+using binary_operation = map<sequence<restricted_math_expression,
+                                      spaces,
+                                      map<Sym, always<Op>>,
+                                      spaces,
+                                      rec_math_expression>,
+                             to_ast>;
 using plus_op = binary_operation<plus, std::plus<>>;
 using minus_op = binary_operation<minus, std::minus<>>;
-using operation = map<alternative<plus_op, minus_op>, to_ast>;
+using operation = choose<plus_op, minus_op>;
 
 struct rec_math_expression
-    : recursive<
-          alternative<operation, number, parenthesised<rec_math_expression>>> {
-};
+    : map<recursive<choose<operation,
+                           number_ptr,
+                           parenthesised<map<rec_math_expression, to_ast>>>>,
+          to_ast> {};
 
 namespace detail {
 template <class... Ts>

@@ -12,6 +12,9 @@ struct interpreter_traits {
   using result_type = typename I::template result_t<It, Desc>;
 
   template <class It, class Desc>
+  using success_type = typename I::template success_t<It, Desc>;
+
+  template <class It, class Desc>
   using value_type = typename result_traits<
       typename I::template result_t<It, Desc>>::value_type;
 };
@@ -30,6 +33,10 @@ template <class Interpreter, class Iterator, class Description>
 using interpreter_result_type =
     typename interpreter_traits<Interpreter>::template result_type<Iterator,
                                                                    Description>;
+
+template <class Interpreter, class Iterator, class Description>
+using interpreter_success_type = typename interpreter_traits<
+    Interpreter>::template success_type<Iterator, Description>;
 }  // namespace parsers
 
 #endif  // GUARD_PARSERS_CUSTOMIZATION_POINTS_HPP

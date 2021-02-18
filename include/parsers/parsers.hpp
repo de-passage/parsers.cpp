@@ -94,13 +94,16 @@ constexpr auto parse_range(Descriptor&& desc, const T& input) noexcept {
   return range_parser(begin(input), end(input));
 }
 
-template <class Descriptor, class T>
-constexpr auto parse(Descriptor&& desc, const T& input) noexcept {
+template <class Description, class T>
+constexpr auto parse(Description&& desc, const T& input) noexcept {
   using std::begin, std::end;
   const auto parser =
       parsers::interpreters::make_parser<parsers::interpreters::object_parser>(
-          std::forward<Descriptor>(desc));
-  return parser(begin(input), end(input)).map([](auto&& pair) {
+          std::forward<Description>(desc));
+  using P = interpreter_success_type<parsers::interpreters::object_parser,
+                                     decltype(begin(input)),
+                                     std::decay_t<Description> >;
+  return parser(begin(input), end(input)).map([](P&& pair) {
     return std::get<1>(std::forward<decltype(pair)>(pair));
   });
 }

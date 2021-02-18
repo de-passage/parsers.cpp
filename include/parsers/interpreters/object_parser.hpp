@@ -221,7 +221,10 @@ struct object_parser {
   };
 
   template <class I, class T>
-  using result_t = dpsg::result<std::pair<I, object_t<I, T>>, I>;
+  using success_t = std::pair<I, object_t<I, T>>;
+
+  template <class I, class T>
+  using result_t = dpsg::result<success_t<I, T>, I>;
 
   template <class T, class ItB, class ItE>
   constexpr static inline result_t<ItB, T> success(
