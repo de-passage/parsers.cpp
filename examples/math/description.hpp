@@ -24,6 +24,9 @@ using closing_parenthese = d<character<')'>>;
 using spaces = d<many<space_t>>;
 using plus = character<'+'>;
 using minus = character<'-'>;
+using mult = character<'*'>;
+using div = character<'/'>;
+using pow = character<'^'>;
 using negative_integer = map<both<d<minus>, ascii::integer>, std::negate<>>;
 template <class... Ts>
 using parenthesised =
@@ -53,11 +56,13 @@ struct binary_operation : math_expression {
   binary_operation(math_expression_ptr&& left,
                    math_expression_ptr&& right) noexcept
       : left{std::move(left)}, right{std::move(right)} {}
-  math_expression_ptr left;
-  math_expression_ptr right;
   [[nodiscard]] int evaluate() const override {
     return Op{}(left->evaluate(), right->evaluate());
   }
+
+ private:
+  math_expression_ptr left;
+  math_expression_ptr right;
 };
 }  // namespace ast
 
@@ -102,12 +107,25 @@ using binary_operation = map<sequence<restricted_math_expression,
                              to_ast>;
 using plus_op = binary_operation<plus, std::plus<>>;
 using minus_op = binary_operation<minus, std::minus<>>;
-using operation = choose<plus_op, minus_op>;
+using mult_op = binary_operation<mult, std::multiplies<>>;
+using div_op = binary_operation<div, std::divides<>>;
+struct power {
+  template <class T>
+  constexpr auto operator()(T a, T b) noexcept {
+    T c = 1;
+    while (b-- > 0) {
+      c *= a;
+    }
+    return c;
+  }
+};
+using pow_op = binary_operation<pow, power>;
+using operation = choose<plus_op, minus_op, mult_op, div_op, pow_op>;
 
 struct rec_math_expression
     : map<recursive<choose<operation,
                            number_ptr,
-                           parenthesised<map<rec_math_expression, to_ast>>>>,
+                           parenthesised<rec_math_expression>>>,
           to_ast> {};
 
 namespace detail {
@@ -117,7 +135,7 @@ using math_seq = sequence<spaces, rec_math_expression, spaces, Ts...>;
 
 static_assert(is_sequence_v<detail::math_seq<>>);
 static_assert(!is_dynamic_range_v<detail::math_seq<>>);
-constexpr detail::math_seq<parsers::dsl::eos_t> math_expression;
+constexpr detail::math_seq<d<parsers::dsl::eos_t>> math_expression;
 constexpr detail::math_seq<> open_ended_math_expression;
 
 }  // namespace math

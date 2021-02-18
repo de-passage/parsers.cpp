@@ -3,7 +3,6 @@
 
 #include <type_traits>
 #include "./description.hpp"
-#include "./description/discard.hpp"
 
 namespace parsers::dsl {
 
@@ -164,8 +163,7 @@ struct is_zero : description::satisfy_character<is_zero> {
 };
 }  // namespace detail
 
-using eos_t = description::discard<
-    description::either<description::end_t, detail::is_zero>>;
+using eos_t = description::either<description::end_t, detail::is_zero>;
 constexpr static inline eos_t eos{};
 
 template <class T = void>

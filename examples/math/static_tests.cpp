@@ -18,7 +18,7 @@ static_assert(valid("1+1"));
 static_assert(valid("-32 + 14"));
 static_assert(valid("( 43 + -8) + 14"));
 static_assert(valid("1+1--2"));
-static_assert(!valid("1 + ( 1 + ( 2 - 1)"));
+static_assert(!valid("1 + ( 2 - 1"));
 static_assert(!valid("1 + 2)"));
 
 constexpr auto check_number_parser = [](const auto& str, int v) -> bool {
