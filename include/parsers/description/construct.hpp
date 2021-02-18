@@ -38,7 +38,7 @@ struct construct
   template <class U,
             std::enable_if_t<
                 !dpsg::is_template_instance_v<std::decay_t<U>, std::tuple> &&
-                    std::is_convertible_v<U, T>,
+                    std::is_constructible_v<T, U>,
                 int> = 0>
   constexpr T operator()(U&& tpl) const noexcept {
     return T{std::forward<U>(tpl)};

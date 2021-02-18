@@ -24,9 +24,7 @@ using closing_parenthese = d<character<')'>>;
 using spaces = d<many<space_t>>;
 using plus = character<'+'>;
 using minus = character<'-'>;
-using whole_number = ascii::integer;
-using negative_wnumber = map<both<d<minus>, whole_number>, std::negate<>>;
-using number = choose<negative_wnumber, whole_number>;
+using negative_integer = map<both<d<minus>, ascii::integer>, std::negate<>>;
 template <class... Ts>
 using parenthesised =
     sequence<opening_parenthese, spaces, Ts..., spaces, closing_parenthese>;
@@ -37,25 +35,52 @@ struct math_expression {
   virtual ~math_expression() = default;
 };
 
+using math_expression_ptr = std::unique_ptr<math_expression>;
+
 struct literal : math_expression {
-  int value;
+  literal() noexcept = default;
+  template <class T>
+  constexpr literal(T val) noexcept : value(static_cast<int>(val)) {}
   [[nodiscard]] int evaluate() const override { return value; }
+  [[nodiscard]] constexpr operator int() const noexcept { return value; }
+
+ private:
+  int value{};
 };
 
 template <class Op>
 struct binary_operation : math_expression {
-  std::unique_ptr<math_expression> left;
-  std::unique_ptr<math_expression> right;
+  math_expression_ptr left;
+  math_expression_ptr right;
   [[nodiscard]] int evaluate() const override {
     return Op{}(left->evaluate(), right->evaluate());
   }
 };
 }  // namespace ast
 
+struct to_ast {
+  template <class T, std::enable_if_t<std::is_integral_v<T>, int> = 0>
+  [[nodiscard]] ast::math_expression_ptr operator()(T i) const noexcept {
+    return std::make_unique<ast::literal>(static_cast<int>(i));
+  }
+
+  template <
+      class T,
+      std::enable_if_t<dpsg::is_template_instance_v<T, std::tuple>, int> = 0>
+  [[nodiscard]] ast::math_expression_ptr operator()(T&& tpl) const noexcept {
+    return std::make_unique<
+        ast::binary_operation<std::tuple_element_t<1, std::decay_t<T>>>>(
+        std::get<0>(std::forward<T>(tpl)), std::get<2>(std::forward<T>(tpl)));
+  }
+};
+
+using number = choose<negative_integer, ascii::integer>;
+using number_ptr = map<number, to_ast>;
+
 struct rec_math_expression;
 
 using restricted_math_expression =
-    alternative<number, parenthesised<rec_math_expression>>;
+    choose<number_ptr, parenthesised<rec_math_expression>>;
 
 template <class Sym, class Op>
 using binary_operation = sequence<restricted_math_expression,
@@ -65,7 +90,7 @@ using binary_operation = sequence<restricted_math_expression,
                                   rec_math_expression>;
 using plus_op = binary_operation<plus, std::plus<>>;
 using minus_op = binary_operation<minus, std::minus<>>;
-using operation = alternative<plus_op, minus_op>;
+using operation = map<alternative<plus_op, minus_op>, to_ast>;
 
 struct rec_math_expression
     : recursive<

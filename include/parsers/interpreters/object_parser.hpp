@@ -94,6 +94,10 @@ struct unique_ptr : std::unique_ptr<recursive_pointer_type<T, P, I>> {
 
   unique_ptr(unique_ptr&& ptr) noexcept = default;
   unique_ptr(const unique_ptr& ptr) noexcept = delete;
+
+  operator std::unique_ptr<recursive_pointer_type<T, P, I>>() noexcept {
+    return std::move(*this);
+  }
 };
 
 template <class I,

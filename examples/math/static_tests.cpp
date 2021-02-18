@@ -6,7 +6,6 @@ constexpr auto valid = [](const auto& str) {
   return match(math::math_expression, str);
 };
 
-static_assert(!match(math::whole_number(), ""));
 static_assert(!valid(""));
 static_assert(!valid(" "));
 static_assert(!valid("()"));
