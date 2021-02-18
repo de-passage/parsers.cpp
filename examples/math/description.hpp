@@ -135,7 +135,7 @@ using math_seq = sequence<spaces, rec_math_expression, spaces, Ts...>;
 
 static_assert(is_sequence_v<detail::math_seq<>>);
 static_assert(!is_dynamic_range_v<detail::math_seq<>>);
-constexpr detail::math_seq<d<parsers::dsl::eos_t>> math_expression;
+constexpr detail::math_seq<eos_t> math_expression;
 constexpr detail::math_seq<> open_ended_math_expression;
 
 }  // namespace math

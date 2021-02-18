@@ -8,7 +8,7 @@
 
 namespace examples {
 using namespace parsers::description;
-using namespace parsers::dsl;
+
 struct length {
   template <class I>
   constexpr std::size_t operator()(I beg, I end) const noexcept {
@@ -85,6 +85,7 @@ struct to_int {
 
 TEST(Build, InnerParserFailureShouldPropagate) {
   using namespace examples;
+  using namespace parsers::dsl;
   using parsers::match;
   constexpr auto number = many1{ascii::digit};
   static_assert(match(number, "312"));

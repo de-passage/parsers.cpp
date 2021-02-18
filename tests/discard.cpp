@@ -8,7 +8,6 @@
 
 namespace examples {
 using namespace parsers::description;
-using namespace parsers::dsl;
 constexpr auto _1 = discard{both{many{'a'}, eos}};
 constexpr auto _2 = sequence{discard{'a'}, 'b'};
 constexpr auto _3 = alternative{discard{sequence{"a", eos}},

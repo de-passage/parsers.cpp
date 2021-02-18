@@ -10,7 +10,6 @@
 
 namespace example {
 using namespace parsers::description;
-using namespace parsers::dsl;
 
 struct {
   constexpr int operator()(char c) const noexcept { return c - '0'; }

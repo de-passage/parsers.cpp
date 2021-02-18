@@ -7,7 +7,7 @@
 
 namespace parsers::description {
 template <class D, class F, class I>
-struct basic_bind : container<D> {
+struct basic_bind : private container<D> {
   using base = container<D>;
   using interpreter_t = I;
 

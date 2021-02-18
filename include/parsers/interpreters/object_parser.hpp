@@ -332,7 +332,8 @@ struct object_parser {
       D&& description,
       IB begin,
       IE end) noexcept {
-    auto result = description.interpreter()(description.parser())(begin, end);
+    auto result =
+        description.interpreter()(description.inner_parser())(begin, end);
     using traits = parsers::result_traits<decltype(result)>;
 
     if (traits::has_value(result)) {

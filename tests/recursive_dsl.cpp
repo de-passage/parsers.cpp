@@ -2,8 +2,7 @@
 
 #include <gtest/gtest.h>
 
-using namespace parsers::dsl;
-
+constexpr auto self = parsers::dsl::self;
 namespace test_detail {
 using namespace parsers::description;
 template <class R, class T>

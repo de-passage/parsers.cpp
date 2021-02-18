@@ -9,10 +9,10 @@
 namespace parsers::description {
 
 template <class T, class I>
-struct modifier : container<T> {
+struct modifier : private container<T> {
   using base = container<T>;
   using interpreter_t = I;
-  using parser_t = typename base::parser_t;
+  using inner_parser_t = typename base::parser_t;
 
   constexpr modifier() noexcept = default;
 
@@ -38,6 +38,8 @@ struct modifier : container<T> {
   constexpr const interpreter_t&& interpreter() const&& noexcept {
     return static_cast<const modifier&&>(*this)._interpreter;
   }
+
+  constexpr inner_parser_t inner_parser() const { return base::parser(); }
 
  private:
   interpreter_t _interpreter;

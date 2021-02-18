@@ -7,4 +7,5 @@
 #include "./ascii_numbers.hpp"
 #include "./choose.hpp"
 #include "./construct.hpp"
+#include "./eos.hpp"
 #include "./optional.hpp"

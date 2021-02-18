@@ -68,7 +68,7 @@ struct matcher {
                                               D&& description,
                                               IB beg,
                                               IE end) noexcept {
-    auto result = interpreter(description.parser())(beg, end);
+    auto result = interpreter(description.inner_parser())(beg, end);
     using traits = parsers::result_traits<decltype(result)>;
     if (traits::has_value(result)) {
       return result_t<IB>{traits::next_iterator(std::move(result))};

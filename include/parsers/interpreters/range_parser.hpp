@@ -70,7 +70,7 @@ struct range_parser {
                                       D&& description,
                                       ItB begin,
                                       ItE end) noexcept -> result_t<ItB> {
-    auto result = interpreter(description.parser())(begin, end);
+    auto result = interpreter(description.inner_parser())(begin, end);
     using traits = parsers::result_traits<decltype(result)>;
     if (!traits::has_value(result)) {
       return dpsg::failure(begin);
