@@ -221,18 +221,27 @@ struct has_modify<D,
                       std::declval<A>(),
                       std::declval<B>()))>> : std::true_type {};
 
-template <class P, class I, class D>
+template <class I, class D>
 struct modifier_parser {
-  P parser;
+  I interpreter;
   D modifier;
   template <class ItB, class ItE>
   constexpr auto operator()(ItB begin, ItE end) const noexcept
       -> detail::result_t<I, ItB, D> {
-    if constexpr (has_modify<D, I, P, ItB, ItE>::value) {
-      return I::modify(type<D>, modifier, parser(begin, end), begin, end);
+    if constexpr (has_modify<D,
+                             I,
+                             decltype(
+                                 modifier.interpreter()(modifier.parser())),
+                             ItB,
+                             ItE>::value) {
+      return I::modify(type<D>,
+                       modifier,
+                       modifier.interpreter()(modifier.parser())(begin, end),
+                       begin,
+                       end);
     }
     else {
-      return parser(begin, end);
+      return modifier.interpreter()(modifier.parser())(begin, end);
     }
   }
 };
@@ -323,16 +332,12 @@ constexpr auto parsers_interpreters_make_parser(
 
 template <
     class D,
-    class J,
+    class I,
     std::enable_if_t<description::is_modifier_v<std::decay_t<D>>, int> = 0>
-constexpr auto parsers_interpreters_make_parser(
-    D&& descriptor,
-    [[maybe_unused]] J&& ignore) noexcept {
-  const auto parser = descriptor.get_p();
-  return detail::modifier_parser<decltype(descriptor.get_p()),
-                                 std::decay_t<J>,
-                                 detail::remove_cvref_t<D>>{
-      parser, std::forward<D>(descriptor)};
+constexpr auto parsers_interpreters_make_parser(D&& descriptor,
+                                                I&& interpreter) noexcept {
+  return detail::modifier_parser<std::decay_t<I>, detail::remove_cvref_t<D>>{
+      interpreter, std::forward<D>(descriptor)};
 }
 
 template <class D,

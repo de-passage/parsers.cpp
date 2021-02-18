@@ -82,7 +82,7 @@ struct unique_ptr : std::unique_ptr<recursive_pointer_type<T, P, I>> {
   template <
       class U,
       std::enable_if_t<!std::is_same_v<std::decay_t<U>, unique_ptr>, int> = 0>
-  unique_ptr(U&& u)
+  explicit unique_ptr(U&& u)
       : std::unique_ptr<recursive_pointer_type<T, P, I>>{
             std::make_unique<recursive_pointer_type<T, P, I>>(
                 std::forward<U>(u))} {

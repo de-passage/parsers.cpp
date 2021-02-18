@@ -41,9 +41,6 @@ struct modifier : container<T> {
 
  private:
   interpreter_t _interpreter;
-
- public:
-  constexpr auto get_p() const noexcept { return _interpreter(base::parser()); }
 };
 
 constexpr std::false_type is_modifier_f(...) noexcept;
