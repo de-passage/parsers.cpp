@@ -5,6 +5,8 @@
 
 #include "./description.hpp"
 
+#include <parsers/iostream.hpp>
+
 namespace cli_options {
 using namespace parsers::description;
 using namespace parsers::dsl;

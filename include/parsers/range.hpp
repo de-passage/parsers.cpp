@@ -4,11 +4,14 @@
 #include <iterator>
 #include <type_traits>
 
+#include "./utility.hpp"
+
 namespace parsers {
 
 struct zero_marker {};
+
 namespace detail {
-template <class It>
+template <bool Start, class It>
 struct range_iterator_container {
   using iterator_type = It;
 
@@ -28,8 +31,8 @@ struct range_iterator_container {
   It _value;
 };
 
-template <>
-struct range_iterator_container<zero_marker> {
+template <bool B>
+struct range_iterator_container<B, zero_marker> {
   using iterator_type = zero_marker;
 
   [[nodiscard]] static constexpr iterator_type value() noexcept {
@@ -47,7 +50,12 @@ struct const_char_wrapper {
   using iterator_category = typename std::bidirectional_iterator_tag;
 
   constexpr const_char_wrapper() noexcept = default;
-  constexpr explicit const_char_wrapper(const C* ptr) noexcept : _ptr{ptr} {}
+  template <
+      class T,
+      std::enable_if_t<!std::is_same_v<std::decay_t<T>, const_char_wrapper>,
+                       int> = 0>
+  constexpr explicit const_char_wrapper(T&& ptr) noexcept
+      : _ptr{static_cast<const C*>(ptr)} {}
 
  private:
   const C* _ptr;
@@ -62,11 +70,15 @@ struct const_char_wrapper {
     --_ptr;
     return *this;
   }
-  constexpr const_char_wrapper operator++(int) const noexcept {
-    return ++const_char_wrapper{*this};
+  constexpr const_char_wrapper operator++(int) noexcept {
+    auto c = *this;
+    ++*this;
+    return c;
   }
-  constexpr const_char_wrapper operator--(int) const noexcept {
-    return --const_char_wrapper{*this};
+  constexpr const_char_wrapper operator--(int) noexcept {
+    auto c = *this;
+    --*this;
+    return c;
   }
 
   constexpr reference operator*() const noexcept { return *_ptr; }
@@ -104,10 +116,14 @@ struct const_char_wrapper {
   friend constexpr bool operator!=(T left, const_char_wrapper right) noexcept {
     return !(left == right);
   }
+
+  [[nodiscard]] constexpr auto distance() const noexcept {
+    return std::distance(begin(), end());
+  }
 };
 
-template <class T>
-struct range_iterator_container<T*> {
+template <bool B, class T>
+struct range_iterator_container<B, T*> {
   using iterator_type = const_char_wrapper<T>;
 
   constexpr explicit range_iterator_container(const T* v) noexcept
@@ -129,15 +145,18 @@ static_assert(
 }  // namespace detail
 
 template <class ItB, class ItE>
-struct range : private detail::range_iterator_container<ItB>,
-               private detail::range_iterator_container<ItE> {
- private:
-  using begin_container = detail::range_iterator_container<ItB>;
-  using end_container = detail::range_iterator_container<ItE>;
+struct range : private detail::range_iterator_container<true, ItB>,
+               private detail::range_iterator_container<false, ItE> {
+  using first_t = ItB;
+  using second_t = ItE;
 
- public:
+  using begin_container = detail::range_iterator_container<true, first_t>;
+  using end_container = detail::range_iterator_container<false, second_t>;
+
   using begin_iterator = typename begin_container::iterator_type;
   using end_iterator = typename end_container::iterator_type;
+
+  using value_type = typename std::iterator_traits<begin_iterator>::value_type;
 
   template <class JtB, class JtE>
   constexpr range(JtB&& begin, JtE&& end) noexcept
@@ -162,7 +181,29 @@ struct range : private detail::range_iterator_container<ItB>,
   template <std::size_t S, class T>
   constexpr explicit range(const T (&arr)[S]) noexcept
       : begin_container{static_cast<const T*>(arr)},
-        end_container{static_cast<const T*>(arr) + S} {}
+        end_container{static_cast<const T*>(arr) + S - 1} {}
+
+ private:
+  template <class T, class U>
+  using similar =
+      std::conjunction<std::negation<std::is_same<T, U>>,
+                       dpsg::is_template_instance<T, range>,
+                       std::is_constructible<typename U::begin_iterator,
+                                             typename T::begin_container>,
+                       std::is_constructible<typename U::end_iterator,
+                                             typename T::end_container>>;
+
+ public:
+  template <class T,
+            std::enable_if_t<similar<std::decay_t<T>, range>::value, int> = 0>
+  constexpr explicit range(T&& val) noexcept
+      : begin_container{std::forward<T>(val).begin()},
+        end_container{std::forward<T>(val).end()} {}
+
+  template <class T, std::enable_if_t<similar<range, T>::value, int> = 0>
+  operator T() const noexcept {
+    return T{begin(), end()};
+  }
 
   [[nodiscard]] constexpr begin_iterator begin() const noexcept {
     return begin_container::value();
@@ -170,14 +211,65 @@ struct range : private detail::range_iterator_container<ItB>,
   [[nodiscard]] constexpr end_iterator end() const noexcept {
     return end_container::value();
   }
+
+  template <class F, class S>
+  [[nodiscard]] friend constexpr bool operator==(
+      const range& left,
+      const range<F, S>& right) noexcept {
+    auto beg1 = left.begin();
+    const auto end1 = left.end();
+    auto beg2 = right.begin();
+    const auto end2 = right.end();
+    while (true) {
+      const auto f1 = beg1 == end1;
+      const auto f2 = beg2 == end2;
+      if (f1 != f2) {
+        return false;
+      }
+      if (f1 && f2) {
+        return true;
+      }
+      if (*beg1++ != *beg2++) {
+        return false;
+      }
+    }
+  }
+
+  template <class T>
+  [[nodiscard]] friend constexpr bool operator!=(const range& left,
+                                                 T&& right) noexcept {
+    return !(left == std::forward<T>(right));
+  }
+
+  template <
+      class T,
+      std::enable_if_t<!dpsg::is_template_instance_v<std::decay_t<T>, range> &&
+                           std::is_constructible_v<range, T>,
+                       int> = 0>
+  [[nodiscard]] friend constexpr bool operator==(const range& left,
+                                                 T&& right) noexcept {
+    return left == range{std::forward<T>(right)};
+  }
 };
-template <class T>
-range(const T* elem) -> range<const T*, zero_marker>;
+template <
+    class T,
+    std::enable_if_t<!std::is_array_v<std::remove_reference_t<T>>, int> = 0>
+range(T&& elem) -> range<std::remove_reference_t<T>, zero_marker>;
 template <class T, class U>
 range(T&&, U&&) -> range<std::decay_t<T>, std::decay_t<U>>;
 template <std::size_t S, class T>
 range(const T (&)[S]) -> range<const T*, const T*>;
+template <class T>
+range(detail::const_char_wrapper<T>, detail::const_char_wrapper<T>)
+    -> range<T*, T*>;
 
+static_assert(std::is_constructible_v<
+              parsers::detail::range_iterator_container<true, const char*>,
+              parsers::detail::const_char_wrapper<const char>>);
+static_assert(std::is_convertible_v<
+              parsers::range<parsers::detail::const_char_wrapper<const char>,
+                             parsers::detail::const_char_wrapper<const char>>,
+              parsers::range<const char*, const char*>>);
 }  // namespace parsers
 
 #endif  // GUARD_PARSERS_RANGE_HPP

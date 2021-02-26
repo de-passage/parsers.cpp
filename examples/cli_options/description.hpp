@@ -5,7 +5,6 @@
 #include <parsers/parsers.hpp>
 
 #include <string>
-#include <string_view>
 #include <utility>
 #include <variant>
 
@@ -19,11 +18,10 @@ using d = discard<T>;
 using dash = character<'-'>;
 using double_dash = both<dash, dash>;
 
-using short_option_name = both<d<dash>, as_string_view<alpha_t>>;
-using long_option_name =
-    both<d<double_dash>,
-         as_string_view<
-             both<alpha_t,
+using short_option_name = both<d<dash>, as_range<alpha_t>>;
+using long_option_name = both<
+    d<double_dash>,
+    as_range<both<alpha_t,
                   many<alternative<alpha_t, character<'-'>, character<'_'>>>>>>;
 
 using quotation_mark = character<'"'>;
@@ -38,7 +36,7 @@ struct non_quote : satisfy_character<non_quote> {
 };
 
 using string = sequence<d<quotation_mark>,
-                        as_string_view<many<either<escaped_quote, non_quote>>>,
+                        as_range<many<either<escaped_quote, non_quote>>>,
                         d<quotation_mark>>;
 
 struct value_characters : satisfy_character<value_characters> {
@@ -55,16 +53,17 @@ struct initial_value_character : satisfy_character<initial_value_character> {
     return c != '-' && is_value_character(c);
   }
 };
-using value = choose<
-    string,
-    as_string_view<both<initial_value_character, many<value_characters>>>>;
+using value =
+    choose<string,
+           as_range<both<initial_value_character, many<value_characters>>>>;
 
 using spaces = d<many<space_t>>;
 using spaces1 = d<many1<space_t>>;
 
 struct option {
-  std::string_view name;
-  std::optional<std::string_view> value;
+  using string_view = parsers::range<const char*, const char*>;
+  string_view name;
+  std::optional<string_view> value;
 };
 template <class Name, class Value>
 using as_option = construct<option, Name, Value>;
