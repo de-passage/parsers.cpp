@@ -1,6 +1,8 @@
 #ifndef GUARD_PARSERS_HPP
 #define GUARD_PARSERS_HPP
 
+#include "./range.hpp"
+
 #include "./description.hpp"
 #include "./dsl.hpp"
 
