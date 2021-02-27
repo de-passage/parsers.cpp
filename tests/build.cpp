@@ -4,8 +4,6 @@
 
 #include <gtest/gtest.h>
 
-#include "./streq.hpp"
-
 namespace examples {
 using namespace parsers::description;
 
@@ -18,7 +16,7 @@ struct length {
 struct {
   template <class I>
   constexpr auto operator()(I beg, I end) const noexcept {
-    return static_string{beg, end};
+    return parsers::range{beg, end};
   }
 } constexpr static to_string;
 
@@ -41,15 +39,14 @@ TEST(Build, MatcherShouldWorkUnchanged) {
 
 template <class T, class U>
 constexpr bool check(T&& pair, U&& e) noexcept {
-  return streq(parsers::description::static_string(pair.first, pair.second),
-               std::forward<U>(e));
+  return parsers::range(pair.first, pair.second) == std::forward<U>(e);
 }
 
 TEST(Build, RangeParserShouldWorkUnchanged) {
   using namespace examples;
   constexpr auto p1 = parsers::parse_range(_1, "aaa");
   static_assert(p1.has_value());
-  static_assert(check(p1.value(), "aaa"));
+  static_assert(check(p1.value(), "aaa\0"));
   static_assert(!parsers::parse_range(_1, "aaab").has_value());
   constexpr auto p2 = parsers::parse_range(_2, "ace");
   static_assert(p2.has_value());
@@ -65,7 +62,7 @@ TEST(Build, ObjectParserShouldReturnObjectFromRange) {
   static_assert(p2.value() == 6);
   constexpr auto p3 = parsers::parse(_2, "astring rest");
   static_assert(p3.has_value());
-  static_assert(streq(p3.value(), "astring"));
+  static_assert(p3.value() == "astring");
   constexpr auto p4 =
       parsers::parse(build{both{many{_2}, eos}, length}, "acbstring");
   static_assert(p4.has_value());

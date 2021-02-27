@@ -3,7 +3,6 @@
 #include <gtest/gtest.h>
 
 #include <string>
-#include "./streq.hpp"
 
 using namespace std::literals::string_literals;
 
@@ -79,12 +78,12 @@ TEST(AdditionalDescriptions, Option) {
   auto p1 = parsers::parse(os, string);
   auto p2 = parsers::parse(os, nope);
 
-  static_assert(
-      std::is_same_v<
-          typename decltype(p1)::success_type,
-          std::optional<static_string<char, std::string::const_iterator>>>);
+  static_assert(std::is_same_v<
+                typename decltype(p1)::success_type,
+                std::optional<parsers::range<std::string::const_iterator,
+                                             std::string::const_iterator>>>);
 
   ASSERT_TRUE(p1.value());
   ASSERT_FALSE(p2.value());
-  ASSERT_TRUE(streq(*p1.value(), "string"));
+  ASSERT_TRUE(*p1.value() == parsers::range{"string"});
 }

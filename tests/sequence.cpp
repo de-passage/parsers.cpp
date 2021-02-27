@@ -2,7 +2,6 @@
 
 #include <gtest/gtest.h>
 #include <string>
-#include "./streq.hpp"
 
 using namespace std::literals::string_literals;
 using namespace parsers::dsl;
@@ -50,15 +49,15 @@ TEST(Sequence, CanBeParsedForObjects) {
   static_assert(p1.has_value());
   constexpr auto r1 = p1.value();
   static_assert(std::tuple_size<decltype(r1)>::value == 2);
-  static_assert(streq(std::get<0>(r1), "Hello"));
+  static_assert(std::get<0>(r1) == "Hello");
   static_assert(std::get<1>(r1).index() == 1);
-  static_assert(streq(std::get<1>(std::get<1>(r1)), " World!"));
+  static_assert(std::get<1>(std::get<1>(r1)) == " World!");
 
   constexpr auto p2 = parse(s, "Hello!");
   static_assert(p2.has_value());
   constexpr auto r2 = p2.value();
   static_assert(std::tuple_size<decltype(r2)>::value == 2);
-  static_assert(streq(std::get<0>(r2), "Hello"));
+  static_assert(std::get<0>(r2) == "Hello");
   static_assert(std::get<1>(r2).index() == 0);
   static_assert(std::get<0>(std::get<1>(r2)) == '!');
 
@@ -68,7 +67,7 @@ TEST(Sequence, CanBeParsedForObjects) {
 
 template <class P>
 constexpr auto string(const P& p) noexcept {
-  return parsers::description::static_string{p.first, p.second};
+  return parsers::range{p.first, p.second};
 }
 
 TEST(Sequence, CanParseRange) {
@@ -79,9 +78,9 @@ TEST(Sequence, CanParseRange) {
   constexpr auto p1 = parse_range(s, "string");
   static_assert(p1.has_value());
   constexpr auto r1 = string(p1.value());
-  static_assert(streq(r1, "string"));
+  static_assert(r1 == "string");
   constexpr auto p2 = parse_range(s, "String....");
   static_assert(p2.has_value());
   constexpr auto r2 = string(p2.value());
-  static_assert(streq(r2, "String...."));
+  static_assert(r2 == "String....");
 }

@@ -6,8 +6,6 @@
 
 #include <gtest/gtest.h>
 
-#include "./streq.hpp"
-
 namespace example {
 using namespace parsers::description;
 
@@ -43,9 +41,7 @@ TEST(Map, MatcherShouldWorkUnchanged) {
 
 template <class T, class U>
 constexpr bool check(T&& t, U&& u) noexcept {
-  return streq(
-      parsers::description::static_string{std::get<0>(t), std::get<1>(t)},
-      std::forward<U>(u));
+  return parsers::range{std::get<0>(t), std::get<1>(t)} == std::forward<U>(u);
 }
 
 TEST(Map, RangeShouldWorkUnchanged) {
@@ -57,14 +53,14 @@ TEST(Map, RangeShouldWorkUnchanged) {
 
   constexpr auto p2 = parsers::parse_range(both{many{_1}, eos}, "1123");
   static_assert(p2.has_value());
-  static_assert(check(p2.value(), "1123"));
+  static_assert(check(p2.value(), "1123\0"));
 
   constexpr auto p3 = parsers::parse_range(_1, "a");
   static_assert(!p3.has_value());
 
   constexpr auto p4 = parsers::parse_range(both{_2, eos}, "4444");
   static_assert(p4.has_value());
-  static_assert(check(p4.value(), "4444"));
+  static_assert(check(p4.value(), "4444\0"));
 }
 
 TEST(Map, ObjectMapsValuesCorrectly) {

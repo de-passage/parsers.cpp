@@ -2,6 +2,8 @@
 #define GUARD_PARSERS_BASIC_PARSER_HPP
 
 #include "../description.hpp"
+#include "../range.hpp"
+#include "../result_traits.hpp"
 #include "../utility.hpp"
 
 #include <memory>
@@ -9,8 +11,6 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-
-#include "../result_traits.hpp"
 
 namespace parsers::interpreters {
 namespace detail {
@@ -117,13 +117,10 @@ constexpr static inline auto build([[maybe_unused]] type_t<S>,
   return *std::forward<I>(b);
 }
 
-template <
-    class S,
-    class I,
-    instance_of<S, description::static_string> = 0,
-    class R = description::static_string<
-        typename std::iterator_traits<detail::remove_cvref_t<I>>::value_type,
-        detail::remove_cvref_t<I>>>
+template <class S,
+          class I,
+          instance_of<S, description::static_string> = 0,
+          class R = parsers::range<std::decay_t<I>, std::decay_t<I>>>
 constexpr static inline R build([[maybe_unused]] type_t<S>,
                                 [[maybe_unused]] I&& b,
                                 [[maybe_unused]] I&& e) noexcept {

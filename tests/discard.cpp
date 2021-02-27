@@ -4,8 +4,6 @@
 
 #include <gtest/gtest.h>
 
-#include "./streq.hpp"
-
 namespace examples {
 using namespace parsers::description;
 constexpr auto _1 = discard{both{many{'a'}, eos}};
@@ -22,8 +20,8 @@ TEST(Discard, ShouldWorkUnchangedWithMatcher) {
 }
 
 template <class P>
-constexpr std::string_view string(const P& p) noexcept {
-  return std::string_view(p.first, std::distance(p.first, p.second));
+constexpr auto string(const P& p) noexcept {
+  return parsers::range(p.first, p.second);
 }
 
 TEST(Discard, ShouldWorkUnchangedWithRange) {
@@ -32,10 +30,10 @@ TEST(Discard, ShouldWorkUnchangedWithRange) {
   static_assert(!p1f.has_value());
   constexpr auto p1 = parsers::parse_range(_1, "aaa");
   static_assert(p1.has_value());
-  static_assert(streq(string(p1.value()), "aaa"));
+  static_assert(string(p1.value()) == "aaa\0");
   constexpr auto p2 = parsers::parse_range(_2, "ab");
   static_assert(p2.has_value());
-  static_assert(streq(string(p2.value()), "ab"));
+  static_assert(string(p2.value()) == "ab");
 }
 
 TEST(Discard, ShouldDiscardValuesWithObjectParser) {

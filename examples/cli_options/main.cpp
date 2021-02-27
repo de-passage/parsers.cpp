@@ -49,7 +49,7 @@ constexpr auto test =
 
 int main(int argc, const char** argv) {
   using namespace parsers::interpreters;
-  const auto parse = make_parser<object_parser>(cli_options::test);
+  constexpr auto parse = make_parser<object_parser>(cli_options::test);
   auto p = parse(argv, argv + argc);
   std::cout << "parsing succeded? " << std::boolalpha << p.has_value()
             << std::endl;

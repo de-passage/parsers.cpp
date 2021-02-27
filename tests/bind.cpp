@@ -6,8 +6,6 @@
 
 #include <gtest/gtest.h>
 
-#include "./streq.hpp"
-
 namespace example {
 using namespace parsers::description;
 using namespace parsers::dsl;
@@ -34,9 +32,8 @@ struct next_char {
 } constexpr next_char;
 
 struct to_string {
-  constexpr static_string<char> operator()(const char* s,
-                                           const char* e) const noexcept {
-    return static_string{s, e};
+  constexpr auto operator()(const char* s, const char* e) const noexcept {
+    return parsers::range{s, e};
   }
 } constexpr to_string;
 
@@ -64,11 +61,12 @@ struct reversed {
       return !(l == r);
     }
   };
-  constexpr auto operator()(static_string<char> str) const noexcept {
+  template <class S>
+  constexpr auto operator()(S str) const noexcept {
     const auto b = str.begin();
     const auto e = str.end();
     const auto d = std::distance(b, e);
-    return static_string(iterator{b, d}, iterator{b, 0});
+    return parsers::description::static_string(iterator{b, d}, iterator{b, 0});
   }
 } constexpr reversed;
 
@@ -104,8 +102,7 @@ TEST(Bind, ShouldWorkUnchangedWithMatcher) {
 
 template <class P, class T>
 constexpr bool check(P&& pair, T&& str) noexcept {
-  return streq(parsers::description::static_string{pair.first, pair.second},
-               std::forward<T>(str));
+  return parsers::range{pair.first, pair.second} == std::forward<T>(str);
 }
 
 TEST(Bind, ShouldWorkWithRange) {

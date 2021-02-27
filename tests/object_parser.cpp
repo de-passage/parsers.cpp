@@ -3,8 +3,6 @@
 #include <gtest/gtest.h>
 #include <string>
 
-#include "./streq.hpp"
-
 using namespace std::literals::string_literals;
 
 template <class D, class T>
@@ -49,7 +47,7 @@ TEST(ObjectParser, StringShouldWork) {
   constexpr auto s = parse(test, "test string");
   static_assert(s.has_value());
   constexpr auto str = s.value().second;
-  static_assert(streq(str, test));
+  static_assert(str == test);
 }
 
 TEST(ObjectParser, ManyShouldWork) {
@@ -71,7 +69,7 @@ TEST(ObjectParser, EitherShouldWork) {
   static_assert(p.has_value());
   constexpr auto e = p.value().second;
   static_assert(e.index() == 1);
-  static_assert(streq(std::get<1>(e), "te"));
+  static_assert(std::get<1>(e) == "te");
   static_assert(parse(d, "nope").is_error());
 }
 
@@ -82,7 +80,7 @@ TEST(ObjectParser, BothShouldWork) {
   static_assert(p.has_value());
   constexpr auto b = p.value().second;
   static_assert(std::get<0>(b) == 'H');
-  static_assert(streq(std::get<1>(b), "ello"));
+  static_assert(std::get<1>(b) == "ello");
   static_assert(parse(d, "Hi there").is_error());
 }
 

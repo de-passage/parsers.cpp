@@ -248,12 +248,13 @@ struct range : private detail::range_iterator_container<true, ItB>,
                        int> = 0>
   [[nodiscard]] friend constexpr bool operator==(const range& left,
                                                  T&& right) noexcept {
-    return left == range{std::forward<T>(right)};
+    return left == parsers::range{std::forward<T>(right)};
   }
 };
-template <
-    class T,
-    std::enable_if_t<!std::is_array_v<std::remove_reference_t<T>>, int> = 0>
+template <class T,
+          std::enable_if_t<!std::is_array_v<std::remove_reference_t<T>> &&
+                               std::is_pointer_v<std::decay_t<T>>,
+                           int> = 0>
 range(T&& elem) -> range<std::remove_reference_t<T>, zero_marker>;
 template <class T, class U>
 range(T&&, U&&) -> range<std::decay_t<T>, std::decay_t<U>>;
