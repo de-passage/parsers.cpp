@@ -142,6 +142,14 @@ static_assert(
         typename std::iterator_traits<const_char_wrapper<char>>::value_type,
         char>);
 
+template <class T, class = void>
+struct has_iterator_semantics : std::false_type {};
+template <class T>
+struct has_iterator_semantics<T,
+                              std::void_t<decltype(std::declval<T>().begin()),
+                                          decltype(std::declval<T>().end())>>
+    : std::true_type {};
+
 }  // namespace detail
 
 template <class ItB, class ItE>
@@ -172,11 +180,24 @@ struct range : private detail::range_iterator_container<true, ItB>,
 
   template <
       class JtB,
-      std::enable_if_t<!std::is_same_v<range, std::decay_t<JtB>> &&
-                           !std::is_default_constructible_v<end_container>,
-                       int> = 0>
+      std::enable_if_t<
+          std::conjunction_v<
+              std::negation<std::is_same<range, std::decay_t<JtB>>>,
+              std::negation<std::is_default_constructible<end_container>>,
+              std::negation<detail::has_iterator_semantics<std::decay_t<JtB>>>>,
+          int> = 0>
   constexpr explicit range(JtB&& begin) noexcept
       : begin_container(begin), end_container(begin) {}
+
+  template <
+      class T,
+      std::enable_if_t<std::conjunction_v<
+                           detail::has_iterator_semantics<std::decay_t<T>>,
+                           std::negation<std::is_same<std::decay_t<T>, range>>>,
+                       int> = 0>
+  constexpr explicit range(T&& obj) noexcept
+      : begin_container{std::forward<T>(obj).begin()},
+        end_container{std::forward<T>(obj).end()} {}
 
   template <std::size_t S, class T>
   constexpr explicit range(const T (&arr)[S]) noexcept

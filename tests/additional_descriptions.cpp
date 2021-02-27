@@ -85,5 +85,5 @@ TEST(AdditionalDescriptions, Option) {
 
   ASSERT_TRUE(p1.value());
   ASSERT_FALSE(p2.value());
-  ASSERT_TRUE(*p1.value() == parsers::range{"string"});
+  ASSERT_TRUE(*p1.value() == "string");
 }
