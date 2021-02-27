@@ -250,6 +250,20 @@ struct range : private detail::range_iterator_container<true, ItB>,
                                                  T&& right) noexcept {
     return left == parsers::range{std::forward<T>(right)};
   }
+
+  template <class T,
+            std::enable_if_t<!dpsg::is_template_instance_v<T, range>, int> = 0>
+  [[nodiscard]] friend constexpr bool operator==(const T& left,
+                                                 const range& right) noexcept {
+    return right == left;
+  }
+
+  template <class T,
+            std::enable_if_t<!dpsg::is_template_instance_v<T, range>, int> = 0>
+  [[nodiscard]] friend constexpr bool operator!=(const T& left,
+                                                 const range& right) noexcept {
+    return right != left;
+  }
 };
 template <class T,
           std::enable_if_t<!std::is_array_v<std::remove_reference_t<T>> &&
