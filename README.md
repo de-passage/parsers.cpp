@@ -64,6 +64,17 @@ parse(Description&& desc, const T& input);
 Transform the input into a C++ object. Sequences of characters are turned into `parsers::range` (moral equivalent of C++20 `span`), sequences of non characters (produced by `construct` or `build` for example) are combined into `std::tuple`, and alternatives are represented as `std::variant`.  
 The final result is a variant wrapper containing either the result or an error type (currently an iterator representing the point of failure, WIP).
 
+### Basic parsers
+These are simple parsers that are useful in most circumstances.
+###### character
+Parses a single character, returning it as is. The dsl provides a `_c` suffix to simplify the code. Note that literal characters are also understood as `character` where possible.
+###### static_string
+Parses a sequence of characters and returns a `parsers::range`. The dsl provides a `_s` suffix, literal character arrays are also understood as `static_string` where possible. Note that the constructor taking an array will drop the last element as it is usually the terminating 0 that we don't want to include implicitely. In most cases this doesn't cause any problem, but remember to use the iterator based constructor if you ever construct it from an array that doesn't contain a terminating 0.
+###### end
+Parses the end of the input. This only succeeds if the start iterator is equal to the end iterator.
+###### eos
+Parses the end of a string. This succeeds if `end` succeeds or if the current character is 0.
+
 ### Combinators
 
 These are not technically parsers as they cannot be used alone, they need to be created from other parsers, they are basically higher-order parsers.  
@@ -133,8 +144,8 @@ constexpr auto to_int = [] (auto beg, auto end) {
  // parse a sequence of digits into a C++ int
  constexpr auto integer = many{ascii::digit} /= to_int;
  
- // parse an integer followed by '+', followed by an integer, into a std::tuple<int, int>
- constexpr auto addition = integer & discard{'+'} & integer;
+ // parse an integer followed by '+' (discarded), followed by an integer, into a std::tuple<int, int>
+ constexpr auto addition = integer & ~'+'_c & integer;
  
  int main(int argc, char** argv) {
    if (argc < 1) {
