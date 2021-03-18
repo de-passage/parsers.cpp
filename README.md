@@ -6,7 +6,7 @@ It is very much a work in progress, but it can already be used to produce fairly
 Among the defining features are (WIP, so take this as a mostly true wishlist, there are still some edge cases): 
 + no runtime dependencies: the library can be used mostly at compile time. The only exception is dynamic range parsers that produce some sort of C++ object as a result. This can be avoided with some more trickery if you don't need to keep the intermediate results (for example by folding over the values as you get them).
 + optional exceptions: customizable failure handlers mean you can choose the strategy you like for ill-formed inputs. 
-+ completely configurable: on top of combining existing parsers and defining you own, you can change parsing strategies (only 1 available at the moment, but you can implement your own), optimize manually special cases or configure error handling 
++ completely configurable: on top of combining existing parsers and defining you own, you can change parsing strategies (3 available at the moment, and you can implement your own), optimize manually special cases or configure error handling 
 
 ## What's a parser anyway? 
 
@@ -21,7 +21,7 @@ Regular expression are a simple way to express simple parsers. They're convenien
 In comparison, this library provides a way to feed parts of the input into later computations, producing parsers that essentially self-modify depending on their input. Let's take a trivial example that cannot be done with a regular expression: parsing a character followed by the next character in alphabetic order. For example "ab", "EF" or "wy".
 With this library, this can be expressed as: 
 ~~~ cpp
-constexpr auto next_char = [](char c) { return character{c + 1}; }
+constexpr auto next_char = [](char c) { return character{c + 1}; };
 
 // Matches two characters in ascending orders
 constexpr auto succ1 = bind{ascii::alpha, next_char}; 
@@ -35,3 +35,73 @@ The library is header-only. Simply copy the content of the __include__ folder in
 You can find many basic examples in the __tests__ folder and more complex examples in the __examples__ folder.
 
 Using the library is fairly straightforward. `#include "parsers/parsers.hpp`, define a parser, call a processing function with your parser and your input.
+
+For maximum flexibility, the library separate the consumption of the input, which is expressed by a _description_ and the production of the output, which is defined by the _interpreter_.  
+If you rely on premade functions, the selection of the interpreter and post-processing of the result is done for you.
+
+### Utility functions
+These functions include: 
+###### match
+``` cpp
+template<class Description, class T>
+constexpr bool match(Description&& description, const T& input) noexcept; 
+```
+Returns true if the given description matches the beginning of input. Unlike with a classic regular expression library, this function will **not** match a subset of the input that starts farther that the 0th index. You can achieve this result by discarding characters until you find the start of your chain. (for example, recursively ` fix(my_parser | (discard{any} & self))`
+
+###### match_full
+``` cpp
+template <class Descriptor, class T>
+constexpr bool match_full(Descriptor&& descriptor, const T& input) noexcept;
+```
+Similar to `match`, but fails if the input is not completely consumed (i.e. has trailing characters). 
+
+###### parse
+~~~ cpp
+template <class Description, class T>
+constexpr parsers::result</* success type depending on Description */, /*error type WIP*/>
+parse(Description&& desc, const T& input);
+~~~
+Transform the input into a C++ object. Sequences of characters are turned into `parsers::range` (moral equivalent of C++20 `span`), sequences of non characters (produced by `construct` or `build` for example) are combined into `std::tuple`, and alternatives are represented as `std::variant`.  
+The final result is a variant wrapper containing either the result or an error type (currently an iterator representing the point of failure, WIP).
+
+## Concrete example
+The following program reads a single input representing the addition of two integers and returns the result (i.e. "3+5" would write "8"). 
+``` cpp 
+#include <parsers/parsers.hpp>
+
+using namespace parsers::description;
+using namespace parsers::dsl;
+
+// turns an arbitrary range (not necessarily ending with 0) into an integer
+constexpr auto to_int = [] (auto beg, auto end) {
+  int count = 0;
+  while(beg != end) {
+    count = count * 10 + *beg - '0';
+    ++beg;
+   }
+   return count;
+ };
+ 
+ // parse a sequence of digits into a C++ int
+ constexpr auto integer = many{ascii::digit} /= to_int;
+ 
+ // parse an integer followed by '+', followed by an integer, into a std::tuple<int, int>
+ constexpr auto addition = integer & discard{'+'} & integer;
+ 
+ int main(int argc, char** argv) {
+   if (argc < 1) {
+     std::cerr << "Missing input\n";
+     return 1;
+   }
+   
+   auto result = parsers::parse(addition, argv[1]);
+   if (result.has_value()) {
+     std::cout << std::get<0>(parsers.value()) + std::get<1>(parsers.value()) << '\n';
+   } else {
+     std::cerr << "Invalid input\n";
+     return 1;
+   }
+   
+   return 0;
+ }
+```
