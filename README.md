@@ -46,7 +46,7 @@ These functions include:
 template<class Description, class T>
 constexpr bool match(Description&& description, const T& input) noexcept; 
 ```
-Returns true if the given description matches the beginning of input. Unlike with a classic regular expression library, this function will **not** match a subset of the input that starts farther that the 0th index. You can achieve this result by discarding characters until you find the start of your chain. (for example, recursively ` fix(my_parser | (discard{any} & self))`
+Returns true if the given description matches the beginning of input. Unlike with a classic regular expression library, this function will **not** match a subset of the input that starts farther that the 0th index. You can achieve this result by discarding characters until you find the start of your chain. (for example, recursively ` fix(p | (~any & self))`
 
 ###### match_full
 ``` cpp
@@ -74,6 +74,13 @@ Parses a sequence of characters and returns a `parsers::range`. The dsl provides
 Parses the end of the input. This only succeeds if the start iterator is equal to the end iterator.
 ###### eos
 Parses the end of a string. This succeeds if `end` succeeds or if the current character is 0.
+###### succeed
+A parser that always succeeds without consuming anything. Seems useless but can be exploited to build other parsers. For example the `optional` parser could be defined as:
+``` cpp 
+constexpr auto optional = [] (auto p) { return p | succeed; };
+```
+###### fail
+A parser that always fail regardless of input. Mostly useful with custom error handlers, that are not implemented yet. So not useful. Yet.
 
 ### Combinators
 
@@ -122,6 +129,29 @@ constexpr auto ignore_spaces = discard{many{ascii::space}};
 constexpr auto ignore_spaces2 = ~many{ascii::space};
 constexpr auto spaces_then_letter = ignore_spaces & any; // match any sequence followed by a character and return only the latter
 ```
+###### fix
+`fix` is used to generate recursive parsers. It must be used together with the special value `self` that represents the parser being created.
+Some other parsers could be implemented using `fix` but aren't for performance and ergonomy reason. Parsing recursive structures yield a tree of objects linked by `std::unique_ptr`, which can be detrimental to performances and is generally unwieldy.
+``` cpp
+constexpr auto many = [](auto p) { return fix((p & self) | succeed); };
+```
+For... reasons, the type level version of `fix` is called `recursive`. See the __examples__ for usage.
+
+#### More combinators
+All the combinators in this section could be implemented using the above, but are provided for convenience and performance.
+###### optional
+Parses 1 or 0 times the inner parser. Could be implemented as `p | succeed`.
+###### many
+Parses 0 or more times. Could be implemented as `fix((p & self) | succeed)`.
+###### many1
+Parses 1 or more times. Could be implemented as `p & many{p}`.
+###### choose
+Behaves similarily to `alternative`, but only in the case where all return types are the same, and unwrap the result. See the __math__ example for good use cases.
+###### construct 
+Behaves similarily to `sequence`, but feeds the results of the parser to the constructor of the type tagged as the first argument.
+###### build
+Takes the range consumed by the inner parser and feeds it to a user-defined function object.  
+Represented by the operator `/=`.
 
 ## Concrete example
 The following program reads a single input representing the addition of two integers and returns the result (i.e. "3+5" would write "8"). 
@@ -131,7 +161,7 @@ The following program reads a single input representing the addition of two inte
 using namespace parsers::description;
 using namespace parsers::dsl;
 
-// turns an arbitrary range (not necessarily ending with 0) into an integer
+// turns an arbitrary range (not necessarily ending with 0, as atoi requires) into an integer
 constexpr auto to_int = [] (auto beg, auto end) {
   int count = 0;
   while(beg != end) {
@@ -141,11 +171,11 @@ constexpr auto to_int = [] (auto beg, auto end) {
    return count;
  };
  
- // parse a sequence of digits into a C++ int
- constexpr auto integer = many{ascii::digit} /= to_int;
+ // parse a sequence of 1 or more digits into a C++ int
+ constexpr auto integer = many1{ascii::digit} /= to_int;
  
  // parse an integer followed by '+' (discarded), followed by an integer, into a std::tuple<int, int>
- constexpr auto addition = integer & ~'+'_c & integer;
+ constexpr auto addition = integer & ~('+'_c) & integer;
  
  int main(int argc, char** argv) {
    if (argc < 1) {
