@@ -1,6 +1,6 @@
 # Parsers
 
-This is a parser combinator library for C++17. As of writing it is only tested and functional with Clang 11, but should work fine with older versions with complete support for C++17. Support for VC2019 and GCC is in the work.
+This is a parser combinator library for C++17. It contains a lot of bleeding-edge techniques, so as of writing it is only tested and functional with Clang 11, but hopefully works with older versions with complete support for C++17. Compilation fails on VC2019 but I'm working on it. GCC is untested.
 
 It is very much a work in progress, but it can already be used to produce fairly complex parsers with little effort.  
 Among the defining features are (WIP, so take this as a mostly true wishlist, there are still some edge cases): 
@@ -37,7 +37,7 @@ You can find many basic examples in the __tests__ folder and more complex exampl
 Using the library is fairly straightforward. `#include "parsers/parsers.hpp`, define a parser, call a processing function with your parser and your input.
 
 For maximum flexibility, the library separate the consumption of the input, which is expressed by a _description_ and the production of the output, which is defined by the _interpreter_.  
-If you rely on premade functions, the selection of the interpreter and post-processing of the result is done for you.
+If you rely on premade functions however, the selection of the interpreter and post-processing of the result is done for you.
 
 ### Utility functions
 These functions include: 
@@ -63,6 +63,54 @@ parse(Description&& desc, const T& input);
 ~~~
 Transform the input into a C++ object. Sequences of characters are turned into `parsers::range` (moral equivalent of C++20 `span`), sequences of non characters (produced by `construct` or `build` for example) are combined into `std::tuple`, and alternatives are represented as `std::variant`.  
 The final result is a variant wrapper containing either the result or an error type (currently an iterator representing the point of failure, WIP).
+
+### Combinators
+
+These are not technically parsers as they cannot be used alone, they need to be created from other parsers, they are basically higher-order parsers.  
+The 2 most basic combinators are `sequence` and `alternative`, but many more are provided.
+#### Essentials
+###### sequence
+`sequence` is the combination of several parsers one after the other. There is a `both` parser that is the exact equivalent of a `sequence` with exactly two elements.  
+`sequence` is represented by the operator `&`.
+~~~ cpp
+constexpr auto ab = both{character{'a'}, character{'b'}}; // parses exactly "ab", could be written as a sequence
+constexpr auto abc = sequence{character{'a'}, character{'b'}, character{'c'}}; // parses exactly "abc"
+constexpr auto abc2 = character{'a'} & character{'b'} & character{'c'}; // parses exactly "abc"
+~~~
+The parse result is a `std::tuple` containing the elements in order, unless it is a sequence of exactly one element in which case it is returned as is.
+###### alternative
+`alternative` is a choice between several parsers. Inner parsers are typically tried left to right, and the result is the result of the first parser to succeed. Alternative strategies (not implemented) could progress through the inner parsers in parallel and accumulate all the results in some way.  
+`either` is equivalent to an alternative with exactly 2 cases.  
+`alternative` is represented by the operator `|`
+~~~ cpp
+constexpr auto choose = either{static_string{"vanilla"}, static_string{"chocolate"}}; // parses "vanilla" or "chocolate"
+constexpr auto ab_or_c = alternative{character{'a'}, character{'b'}, character{'c'}}; // parses "a" or "b" or "c"
+constexpr auto ab_or_c2 = character{'a'} | character{'b'} | character{'c'}; // parses "a" or "b" or "c"
+~~~
+The parse result is a `std::variant` parameterized with the same types as the result types of the inner parsers, and containing the successful one. 
+###### map
+`map` takes the result of a parser and transforms it. It is created from a parser and a transformation function object (class with an overloaded `operator()`, like a lambda).  
+`map` is represented by the operator `/`.
+``` cpp
+constexpr auto digit_as_int = map{ascii::digit, [](char c) { return c - '0'; }; // parsers a character in the range [0-9] and converts it to int
+constexpr auto digit_as_int = ascii::digit / [](char c) { return c - '0'; };
+```
+###### bind
+`bind` is the basic mechanism to feed previous results to further parsers. It takes a parser and a function object accepting the result of the first parser and returning a parser.  
+`bind` is represented by the operator `>>=`.
+``` cpp
+// parses 2 consecutive ascending numbers, wrapping from 9 to 0. e.g. "90", "23", "56" but not "13" nor "21"
+constexpr auto consecutive = bind{ascii::digit, [](char d) { return d == '9' ? character{'0'} : character{d + 1}; }};
+constexpr auto consecutive2 = ascii::digit >>= [](char d) { return d == '9' ? character{'0'} : character{d + 1}; };
+```
+###### discard
+`discard` has for only effect to remove the result of the inner parser from whatever sequence it is contained in. Additionally, it will prevent all instanciation of objects in inner parsers, silencing things like non constexpr construction of `std::vector` by `many` for example.  
+`discard` is represented by the operator `~`.
+``` cpp
+constexpr auto ignore_spaces = discard{many{ascii::space}};
+constexpr auto ignore_spaces2 = ~many{ascii::space};
+constexpr auto spaces_then_letter = ignore_spaces & any; // match any sequence followed by a character and return only the latter
+```
 
 ## Concrete example
 The following program reads a single input representing the addition of two integers and returns the result (i.e. "3+5" would write "8"). 
