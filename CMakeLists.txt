@@ -68,7 +68,8 @@ set (TEST_SRC_FILES
   sequence.cpp 
   alternative.cpp
   recursive_dsl.cpp
-  additional_descriptions.cpp)
+  additional_descriptions.cpp
+  recursive_map.cpp)
 
 if (${BUILD_INDIVIDUAL_TEST_FILES})
 foreach(FILE IN LISTS TEST_SRC_FILES)
