@@ -10,9 +10,9 @@ Among the defining features are (WIP, so take this as a mostly true wishlist, th
 
 ## What's a parser anyway? 
 
-Simply put, a parser is a program which takes a list of values as input, "consumes" (read and discard) some of it and produces some sort of output. The main application is text processing: a parser will read part or all of a character string and produce some sort of runtime value from its content. Parser combinators are building blocks for parsers. Each parser combinator is a parser in its own right, returning a result (or failing) as well as the position until which it consumed it's input. This last information can be used to form the input to another parser. The library then does some template magic to combine, and optionally transform, the results in a way that makes sense. 
+Simply put, a parser is a program which takes a list of values as input, "consumes" (read and discard) some of it and produces some sort of output. The main application is text processing: a parser will read part or all of a character string and produce some sort of runtime value from its content. Different parsers have different requirements for the input, a parser _succeeds_ if the input matches what it expects and _fails_ if it doesn't. A parser that succeded typically returns a value, built from the parsed input, and the subset that wasn't consumed. This makes parsers _composable_, as this last information can be used to form the input to another parser. We can also handle the failure of a parser gracefully, for example by calling another parser with the input. In all those cases, the result of the combination is another parser, taking an input, consuming part of it and returning some sort of output. The object representing the combination of parsers into more complex ones is called a combinator.
 
-This library provides a number of basic parsers and combination methods that should cover most needs. 
+This library provides a number of basic parsers and combinators that should cover most needs. It also does some (i.e. a tremendous amount of) template magic to combine, and optionally transform, the results in a way that makes sense. As is the common usage in C++, it works with iterators. Specifically, it means to work with anything that implements _forward iterator_ requirements.
 
 ### What's the difference with regular expressions?
 
@@ -30,13 +30,15 @@ constexpr auto succ2 = ascii::alpha >>= next_char;
 ~~~
 `ascii::alpha` is a parser consuming exactly 1 character if it is a letter in the ASCII range. We define a `next_char` function that returns a `character` parser, a parser consuming exactly the character it was created with. Those two elements are combined with the `bind` combinator that will forward the result of `ascii::alpha` (a single character) to `next_char` and use the result to parse the next character of the input. If it succeeds, it'll return the result of the second parser.
 
+As you can infer from the example, parsers are regular C++ objects. You can therefore build arbitrary complex operations over parsers by simply defining functions and intermediary objects. 
+
 ## Basic usage and installation
 The library is header-only. Simply copy the content of the __include__ folder in your project to get started.  
 You can find many basic examples in the __tests__ folder and more complex examples in the __examples__ folder.
 
 Using the library is fairly straightforward. `#include "parsers/parsers.hpp`, define a parser, call a processing function with your parser and your input.
 
-For maximum flexibility, the library separate the consumption of the input, which is expressed by a _description_ and the production of the output, which is defined by the _interpreter_.  
+For maximum flexibility, the library separate the consumption of the input, which is expressed by a _description_ and the production of the output, which is defined by the _interpreter_. Interpreters typically return a `parsers::result` result type, a wrapper around a `std::variant` with 2 template parameters that add some semantics to the type. The first template parameter is the _success type_, the second the _failure type_. The success type is typically a product type including the    
 If you rely on premade functions however, the selection of the interpreter and post-processing of the result is done for you.
 
 ### Utility functions
