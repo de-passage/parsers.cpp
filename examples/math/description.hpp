@@ -81,15 +81,16 @@ using pow_op = binary_operation<pow, power>;
 using operation = choose<plus_op, minus_op, mult_op, div_op, pow_op>;
 
 struct rec_math_expression
-    : map<recursive<choose<operation,
-                           number_ptr,
-                           parenthesised<rec_math_expression>>>,
-          to_ast> {};
+    : cast<ast::math_expression_ptr,
+           recursive<choose<operation,
+                            number_ptr,
+                            parenthesised<rec_math_expression>>>> {};
 
 namespace detail {
 template <class... Ts>
 using math_seq = sequence<spaces, rec_math_expression, spaces, Ts...>;
-}
+
+}  // namespace detail
 
 static_assert(is_sequence_v<detail::math_seq<>>);
 static_assert(!is_dynamic_range_v<detail::math_seq<>>);

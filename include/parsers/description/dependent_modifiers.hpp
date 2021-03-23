@@ -5,6 +5,7 @@
 
 #include "./as_range.hpp"
 #include "./ascii_numbers.hpp"
+#include "./cast.hpp"
 #include "./choose.hpp"
 #include "./construct.hpp"
 #include "./eos.hpp"
