@@ -13,3 +13,4 @@ endfunction()
 
 add_subdirectory(math)
 add_subdirectory(cli_options)
+add_subdirectory(demo)
