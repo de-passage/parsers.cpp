@@ -9,7 +9,7 @@
 
 namespace parsers::description {
 
-template <class D, class T>
+template <class D, class T, class R = void>
 struct map
     : modifier<D, interpreters::make_parser_t<interpreters::object_parser>> {
   using base =
@@ -24,8 +24,10 @@ struct map
   T modifier;
 
   template <class I>
-  using result_t =
-      std::invoke_result_t<T, interpreters::object_parser::object_t<I, D>>;
+  using result_t = typename std::conditional_t<
+      std::is_same_v<R, void>,
+      std::invoke_result<T, interpreters::object_parser::object_t<I, D>>,
+      type_t<R>>::type;
 
   template <class U>
   constexpr auto operator()(U&& obj) const noexcept {

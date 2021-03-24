@@ -7,7 +7,7 @@
 
 namespace parsers::description {
 
-template <class D, class T>
+template <class D, class T, class R = void>
 struct build
     : modifier<D, interpreters::make_parser_t<interpreters::range_parser>> {
   using base =
@@ -22,7 +22,9 @@ struct build
   T transformer;
 
   template <class I>
-  using result_t = std::invoke_result_t<T, I, I>;
+  using result_t = typename std::conditional_t<std::is_same_v<R, void>,
+                                               std::invoke_result<T, I, I>,
+                                               type_t<R>>::type;
 
   template <class It>
   constexpr auto operator()(It beg, It end) const noexcept {

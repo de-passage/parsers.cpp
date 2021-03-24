@@ -37,4 +37,5 @@ TEST(RecursiveMap, ShouldCollapseIntegers) {
   ASSERT_EQ(check_length(count_a, "aaaaaa"), 6);
   ASSERT_EQ(check_length(count_a, "b"), 0);
   ASSERT_EQ(check_length(count_a, ""), 0);
+  static_assert(check_length(count_a, "aab") == 2);
 }
